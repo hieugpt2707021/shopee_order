@@ -2,12 +2,12 @@ import React from 'react';
 import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 import { Select } from './Select';
 
-export const SystemTableWrapper = ({ children, pagination }) => {
+export const SystemTableWrapper = ({ children, pagination, tableClassName = "min-w-[1000px]" }) => {
   return (
     <div className="flex-1 flex flex-col min-h-0 rounded border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1b23] shadow-none overflow-hidden">
       <div className="relative flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-auto custom-scrollbar-autohide">
-          <table className="w-full text-left border-collapse min-w-max">
+          <table className={`w-full text-left border-collapse table-fixed ${tableClassName}`}>
             {children}
           </table>
         </div>
@@ -64,7 +64,7 @@ export const SystemThead = ({ children }) => (
 );
 
 export const SystemTh = ({ children, className = '' }) => (
-  <th className={`px-5 py-3.5 font-medium text-gray-500 dark:text-gray-400 text-xs border-l border-gray-100 dark:border-gray-800 uppercase tracking-wide whitespace-nowrap first:border-l-0 ${className}`}>
+  <th className={`px-4 py-3.5 font-medium text-gray-500 dark:text-gray-400 text-xs border-l border-gray-100 dark:border-gray-800 uppercase tracking-wide truncate first:border-l-0 ${className}`}>
     {children}
   </th>
 );
@@ -85,7 +85,7 @@ export const SystemTr = ({ children, className = '', onClick }) => (
 );
 
 export const SystemTd = ({ children, className = '' }) => (
-  <td className={`px-5 py-3.5 border-l border-gray-100 dark:border-gray-800 whitespace-nowrap first:border-l-0 ${className}`}>
+  <td className={`px-4 py-3.5 border-l border-gray-100 dark:border-gray-800 truncate first:border-l-0 ${className}`}>
     {children}
   </td>
 );

@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/Dashboard/page';
 import { ImportedFilesPage } from './pages/ImportedFiles/page';
 import { OrdersPage } from './pages/Orders/page';
+import { ProductsPage } from './pages/Products/page';
 import { SettingsPage } from './pages/Settings/page';
 import { AccessDeniedPage } from './pages/AccessDenied/page';
 import { useAuth } from './hooks/useAuth';
@@ -12,6 +13,10 @@ import { useAuth } from './hooks/useAuth';
 const ProtectedRoute = ({ children }) => {
   const { isAuthorized, isLoading, hwid, error } = useAuth();
 
+  // Tạm thời ẩn chức năng check quyền truy cập
+  return children;
+
+  /*
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0d1117] flex flex-col items-center justify-center">
@@ -26,6 +31,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return children;
+  */
 };
 
 function App() {
@@ -43,6 +49,7 @@ function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/products" element={<ProductsPage />} />
           <Route path="/files" element={<ImportedFilesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           {/* Catch-all */}

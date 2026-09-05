@@ -115,21 +115,14 @@ export const DashboardPage = () => {
                 className="mb-4"
               >
                 {/* ROW 1: PRIMARY METRICS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <SystemMetricCard 
                     title="Doanh thu gộp" 
                     value={formatCurrency(metrics.grossRevenue)} 
                     icon={Wallet} 
                     colorScheme="blue"
                     tooltip="Tổng giá trị của các đơn hàng được tạo (bao gồm cả đơn Hoàn tiền, KHÔNG tính đơn bị Hủy)."
-                    isActive={false}
-                  />
-                  <SystemMetricCard 
-                    title="Doanh thu thực" 
-                    value={formatCurrency(metrics.totalRevenue)} 
-                    icon={Wallet} 
-                    colorScheme="green"
-                    tooltip="Chỉ tính tổng giá trị của các đơn hàng có trạng thái HOÀN THÀNH hoặc ĐANG GIAO (Chưa trừ phí Shopee)."
+                    subtitle="Công thức: Tổng tiền khách trả"
                     isActive={false}
                   />
                   <SystemMetricCard 
@@ -138,28 +131,40 @@ export const DashboardPage = () => {
                     icon={Wallet} 
                     colorScheme="purple"
                     tooltip="Tổng các loại phí sàn (Phí cố định, phí dịch vụ, phí xử lý, phí ship trả hàng) của đơn thành công và đơn hoàn."
+                    subtitle="Các loại phí trừ trực tiếp"
                     isActive={false}
                   />
                   <SystemMetricCard 
-                    title="Lợi nhuận thực" 
-                    value={formatCurrency(metrics.actualProfit)} 
+                    title="Doanh thu (Tiền về Shopee)" 
+                    value={formatCurrency(metrics.totalRevenue - metrics.totalSpent)} 
                     icon={TrendingUp} 
-                    colorScheme="green"
-                    tooltip="Bằng Doanh thu thực TRỪ ĐI Phí Shopee và TRỪ TIẾP Phí Shopee của các đơn Hủy/Hoàn (nếu có)."
+                    colorScheme="orange"
+                    tooltip="Số tiền thực tế nhận được từ ví Shopee."
+                    subtitle="Công thức: DT Gộp - Phí Shopee"
                     isActive={false}
                   />
+                  <SystemMetricCard 
+                    title="Doanh thu ròng (Lãi thực)" 
+                    value={formatCurrency(metrics.actualProfit)} 
+                    icon={DollarSign} 
+                    colorScheme="green"
+                    tooltip="Tiền lãi thực bỏ túi sau khi đã trừ đi tiền gốc mua hàng."
+                    subtitle="Công thức: Doanh thu - Giá nhập"
+                    isActive={false}
+                  />
+                </div>
+
+                {/* ROW 2: SECONDARY METRICS */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-4">
                   <SystemMetricCard 
                     title="Lãi dự kiến" 
                     value={formatCurrency(metrics.expectedProfit)} 
                     icon={DollarSign} 
                     colorScheme="orange"
                     tooltip="Phần lợi nhuận ước tính thu được từ các đơn hàng đang trên đường giao (ĐANG GIAO)."
+                    subtitle="Từ các đơn đang giao"
                     isActive={false}
                   />
-                </div>
-
-                {/* ROW 2: SECONDARY METRICS */}
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-4">
                   <SystemMetricCard 
                     title="Đơn hoàn thành" 
                     value={metrics.completedCount} 
@@ -220,8 +225,9 @@ export const DashboardPage = () => {
                 <SystemCompactMetricsBar
                   onToggleExpand={() => setIsMetricsExpanded(true)}
                   items={[
-                    { label: 'Doanh thu', value: formatCurrency(metrics.totalRevenue), icon: Wallet, color: 'text-blue-500' },
-                    { label: 'Lợi nhuận', value: formatCurrency(metrics.actualProfit), icon: TrendingUp, color: 'text-green-500' },
+                    { label: 'Doanh thu gộp', value: formatCurrency(metrics.grossRevenue), icon: Wallet, color: 'text-blue-500' },
+                    { label: 'Doanh thu', value: formatCurrency(metrics.totalRevenue - metrics.totalSpent), icon: TrendingUp, color: 'text-orange-500' },
+                    { label: 'Doanh thu ròng', value: formatCurrency(metrics.actualProfit), icon: DollarSign, color: 'text-green-500' },
                     { label: 'Hoàn thành', value: metrics.completedCount, icon: CheckCircle, color: 'text-green-500' },
                     { label: 'Đang giao', value: metrics.deliveringCount, icon: Truck, color: 'text-blue-500' },
                     { label: 'Đã hủy', value: metrics.cancelledCount, icon: XCircle, color: 'text-red-500' },

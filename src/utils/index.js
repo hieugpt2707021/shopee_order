@@ -2,8 +2,8 @@ import * as XLSX from 'xlsx';
 import { ORDER_STATUS } from '../constants';
 
 export const formatCurrency = (amount) => {
-  if (amount == null) return '0';
-  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  if (amount == null || isNaN(amount)) return '0';
+  return Math.round(amount).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
 export const parseExcelFile = (file) => {
@@ -34,6 +34,88 @@ export const parseNumber = (val) => {
   return parseFloat(val.toString().replace(/,/g, '')) || 0;
 };
 
+export const generateProductKey = (product) => {
+  const name = product['Tên sản phẩm'] || 'Sản phẩm không xác định';
+  // Group only by product name, ignoring SKU and variation
+  return name.trim();
+};
+
+export const recalculateOrder = (order, productsMap = {}) => {
+  const row = order.rawData;
+  if (!row) return order;
+
+  // 1. Tổng tiền sản phẩm
+  let productAmount = 0;
+  let totalCogs = 0;
+  const productsList = order.productsList || [row];
+  
+  const enhancedProducts = productsList.map(p => {
+    // Xử lý lỗi Unicode normalization từ file Excel của Shopee
+    const priceStr = p['Giá ưu đãi'] || p['Giá ưu đãi'] || p['Giá gốc'];
+    const price = parseNumber(priceStr);
+    const qty = parseNumber(p['Số lượng'] || 1);
+    productAmount += (price * qty);
+
+    const productKey = generateProductKey(p);
+    const dbProduct = productsMap[productKey] || {};
+    const costPrice = dbProduct.costPrice || 0;
+    totalCogs += (costPrice * qty);
+    
+    return {
+      ...p,
+      imageUrl: dbProduct.imageUrl || '',
+      dbCostPrice: costPrice
+    };
+  });
+  
+  // 2. Tổng phí vận chuyển ước tính
+  const phiVanChuyenNguoiMuaTra = parseNumber(row['Phí vận chuyển mà người mua trả']);
+  const phiVanChuyenUocTinh = parseNumber(row['Phí vận chuyển (dự kiến)']);
+  const phiVanChuyenTroGiaShopee = parseNumber(row['Phí vận chuyển tài trợ bởi Shopee (dự kiến)']);
+  const tongPhiVanChuyen = phiVanChuyenNguoiMuaTra - phiVanChuyenUocTinh + phiVanChuyenTroGiaShopee;
+
+  // 3. Phụ phí
+  const phiCoDinh = parseNumber(row['Phí cố định']);
+  const phiDichVu = parseNumber(row['Phí Dịch Vụ']);
+  const phiXuLy = parseNumber(row['Phí xử lý giao dịch']);
+  const phiPiShip = phiVanChuyenNguoiMuaTra * 0.15; // Phí dịch vụ PiShip = 15% phí vận chuyển người mua trả
+  const phiShipTraHang = parseNumber(row['Phí vận chuyển trả hàng (đơn Trả hàng/hoàn tiền)']);
+  
+  const tongPhuPhi = phiCoDinh + phiDichVu + phiXuLy + phiPiShip + phiShipTraHang;
+  
+  // 4. Thuế
+  const thueGTGT = productAmount * 0.01;
+  const thueTNCN = productAmount * 0.005;
+  const tongThue = thueGTGT + thueTNCN;
+  
+  // Doanh thu đơn hàng ước tính
+  const profit = productAmount - tongPhuPhi - tongThue + tongPhiVanChuyen - totalCogs;
+  const totalFees = tongPhuPhi + tongThue - tongPhiVanChuyen;
+
+  return {
+    ...order,
+    productAmount,
+    shopeeFee: totalFees,
+    profit,
+    totalCogs,
+    enhancedProducts,
+    feeDetails: {
+      phiVanChuyenNguoiMuaTra,
+      phiVanChuyenUocTinh,
+      phiVanChuyenTroGiaShopee,
+      tongPhiVanChuyen,
+      phiCoDinh,
+      phiDichVu,
+      phiXuLy,
+      phiPiShip,
+      tongPhuPhi,
+      thueGTGT,
+      thueTNCN,
+      tongThue
+    }
+  };
+};
+
 export const normalizeOrders = (rawData, fileId) => {
   const uniqueRows = {};
   rawData.forEach((row) => {
@@ -48,17 +130,6 @@ export const normalizeOrders = (rawData, fileId) => {
   });
 
   return Object.values(uniqueRows).map(row => {
-    const orderValueStr = row['Tổng giá trị đơn hàng (VND)'];
-    const orderValue = parseNumber(orderValueStr);
-    
-    const phiCoDinh = parseNumber(row['Phí cố định']);
-    const phiDichVu = parseNumber(row['Phí Dịch Vụ']);
-    const phiXuLy = parseNumber(row['Phí xử lý giao dịch']);
-    const phiShipTraHang = parseNumber(row['Phí vận chuyển trả hàng (đơn Trả hàng/hoàn tiền)']);
-    
-    const totalFees = phiCoDinh + phiDichVu + phiXuLy + phiShipTraHang;
-    const profit = orderValue - totalFees;
-    
     const status = row['Trạng Thái Đơn Hàng'] || '';
     const returnStatus = row['Trạng thái Trả hàng/Hoàn tiền'] || '';
     
@@ -79,11 +150,9 @@ export const normalizeOrders = (rawData, fileId) => {
       normalizedStatus = ORDER_STATUS.DELIVERING;
     }
 
-    // Clean up product name
     let productName = row['Tên sản phẩm'] || 'Sản phẩm không xác định';
     if (productName.length > 50) productName = productName.substring(0, 50) + '...';
 
-    // Shorten long status descriptions
     let originalStatus = status;
     if (status.includes('Người mua xác nhận đã nhận được hàng')) {
       originalStatus = 'Đã nhận hàng';
@@ -91,7 +160,7 @@ export const normalizeOrders = (rawData, fileId) => {
       originalStatus = 'Giao thành công';
     }
 
-    return {
+    const baseOrder = {
       id: row['Mã đơn hàng'],
       fileId: fileId,
       orderCode: row['Mã đơn hàng'],
@@ -99,12 +168,13 @@ export const normalizeOrders = (rawData, fileId) => {
       status: normalizedStatus,
       originalStatus: originalStatus,
       productName: productName,
-      productAmount: orderValue,
-      shopeeFee: totalFees,
-      profit: profit,
       productsList: row.productsList || [row],
       rawData: row
     };
+
+    // Note: when calling normalizeOrders initially without DB access, productsMap is empty.
+    // It will be recalculated fully when getFilteredOrders is called.
+    return recalculateOrder(baseOrder);
   });
 };
 
@@ -194,7 +264,7 @@ export const calculateChartData = (normalizedOrders) => {
       const day = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
       
       if (!dailyData[day]) dailyData[day] = { date: day, revenue: 0 };
-      dailyData[day].revenue += order.productAmount;
+      dailyData[day].revenue += order.profit;
     }
   });
 

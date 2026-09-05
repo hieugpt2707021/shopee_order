@@ -34,7 +34,7 @@ export const ImportedFilesPage = () => {
   // Pagination & Filtering state
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
 
   useEffect(() => {
     loadData();
@@ -567,6 +567,7 @@ export const ImportedFilesPage = () => {
 
           <div className="flex-1 flex flex-col min-h-0 mb-6">
             <SystemTableWrapper
+              tableClassName="min-w-[1400px]"
               pagination={
                 <SystemPagination 
                   page={currentPage - 1}
@@ -579,15 +580,15 @@ export const ImportedFilesPage = () => {
               }
             >
               <SystemThead>
-                <SystemTh className="w-14 text-center">STT</SystemTh>
+                <SystemTh className="w-16 text-center">STT</SystemTh>
                 <SystemTh>File Excel</SystemTh>
-                <SystemTh className="w-32">Kỳ dữ liệu</SystemTh>
+                <SystemTh className="w-36">Kỳ dữ liệu</SystemTh>
                 <SystemTh className="w-32">Số đơn</SystemTh>
-                <SystemTh className="w-36">Doanh thu</SystemTh>
-                <SystemTh className="w-32">Phí Shopee</SystemTh>
-                <SystemTh className="w-36">Lợi nhuận</SystemTh>
-                <SystemTh className="w-36">Ngày Import</SystemTh>
-                <SystemTh className="w-32">Trạng thái</SystemTh>
+                <SystemTh className="w-40">Doanh thu</SystemTh>
+                <SystemTh className="w-40">Phí Shopee</SystemTh>
+                <SystemTh className="w-40">Lợi nhuận</SystemTh>
+                <SystemTh className="w-40">Ngày Import</SystemTh>
+                <SystemTh className="w-36">Trạng thái</SystemTh>
                 <SystemTh className="w-32 text-center">Thao tác</SystemTh>
               </SystemThead>
               <SystemTbody>

@@ -209,7 +209,7 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                           className="overflow-hidden"
                         >
                           <div className="p-4 pt-0">
-                            <div className="grid grid-cols-4 gap-3">
+                            <div className="grid grid-cols-4 gap-3 mb-5">
                               {/* Tiền sản phẩm */}
                               <div className="bg-[#0f1522] border border-gray-800/80 rounded p-4 flex flex-col justify-center items-center text-center group hover:border-gray-700 transition-colors">
                                 <div className="flex items-center gap-1.5 mb-2.5">
@@ -232,7 +232,7 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                               <div className="bg-[#0f1522] border border-gray-800/80 rounded p-4 flex flex-col justify-center items-center text-center group hover:border-gray-700 transition-colors">
                                 <div className="flex items-center gap-1.5 mb-2.5">
                                   <Banknote size={14} className="text-[#ef4444]" />
-                                  <span className="text-[11px] font-medium text-gray-400">Phí Shopee</span>
+                                  <span className="text-[11px] font-medium text-gray-400">Tổng phí</span>
                                 </div>
                                 <span className="text-lg font-semibold text-[#ef4444]">- {formatCurrency(order.shopeeFee)} đ</span>
                               </div>
@@ -241,12 +241,87 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                               <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded p-4 flex flex-col justify-center items-center text-center group shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                                 <div className="flex items-center gap-1.5 mb-1.5">
                                   <TrendingUp size={14} className="text-[#10b981]" />
-                                  <span className="text-[11px] font-medium text-gray-300">Lợi nhuận</span>
+                                  <span className="text-[11px] font-medium text-gray-300">Doanh thu</span>
                                 </div>
                                 <span className="text-lg font-semibold text-[#10b981] mb-1.5">{formatCurrency(order.profit)} đ</span>
                                 <span className="text-[9px] font-medium bg-[#10b981]/20 text-[#10b981] px-1.5 py-0.5 rounded">100%</span>
                               </div>
                             </div>
+                            
+                            {/* Detailed Breakdown */}
+                            {order.feeDetails && (
+                              <div className="border-t border-gray-800/80 pt-5 flex flex-col gap-2.5 px-2">
+                                <div className="flex justify-between items-center text-[13px]">
+                                  <span className="font-semibold text-gray-300">Tổng tiền sản phẩm</span>
+                                  <span className="font-medium text-white">đ{formatCurrency(order.productAmount)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Giá sản phẩm</span>
+                                  <span>đ{formatCurrency(order.productAmount)}</span>
+                                </div>
+                                
+                                <div className="flex justify-between items-center text-[13px] mt-2">
+                                  <span className="font-semibold text-gray-300">Tổng phí vận chuyển ước tính</span>
+                                  <span className="font-medium text-white">đ{formatCurrency(order.feeDetails.tongPhiVanChuyen)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí vận chuyển Người mua trả</span>
+                                  <span>đ{formatCurrency(order.feeDetails.phiVanChuyenNguoiMuaTra)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí vận chuyển ước tính</span>
+                                  <span>-đ{formatCurrency(order.feeDetails.phiVanChuyenUocTinh)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí vận chuyển được trợ giá từ Shopee ước tính</span>
+                                  <span>đ{formatCurrency(order.feeDetails.phiVanChuyenTroGiaShopee)}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-[13px] mt-2">
+                                  <span className="font-semibold text-gray-300">Phụ phí</span>
+                                  <span className="font-medium text-[#ef4444]">-đ{formatCurrency(order.feeDetails.tongPhuPhi)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí cố định <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
+                                  <span>{order.feeDetails.phiCoDinh === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiCoDinh)}`}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí dịch vụ PiShip</span>
+                                  <span>{order.feeDetails.phiPiShip === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiPiShip)}`}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí Dịch Vụ <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
+                                  <span>{order.feeDetails.phiDichVu === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiDichVu)}`}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Phí xử lý giao dịch <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
+                                  <span>{order.feeDetails.phiXuLy === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiXuLy)}`}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-[13px] mt-2">
+                                  <span className="font-semibold text-gray-300">Thuế</span>
+                                  <span className="font-medium text-[#ef4444]">-đ{formatCurrency(order.feeDetails.tongThue)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Thuế GTGT <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
+                                  <span>{order.feeDetails.thueGTGT === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.thueGTGT)}`}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                  <span>Thuế TNCN <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
+                                  <span>{order.feeDetails.thueTNCN === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.thueTNCN)}`}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-[13px] mt-2">
+                                  <span className="font-semibold text-gray-300">Tổng phụ dịch vụ giá trị gia tăng cho người mua</span>
+                                  <span className="font-medium text-gray-400">đ0</span>
+                                </div>
+
+                                <div className="flex justify-between items-center text-[15px] mt-3 pt-4 border-t border-gray-800/80">
+                                  <span className="font-bold text-gray-200">Doanh thu đơn hàng ước tính <span className="text-[10px] bg-gray-800/80 px-1.5 py-[2px] rounded-full ml-1 text-gray-400 border border-gray-700/50 cursor-pointer hover:bg-gray-700 transition-colors">?</span></span>
+                                  <span className="font-bold text-[#f53d2d] text-[18px]">đ{formatCurrency(order.profit)}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}
@@ -275,36 +350,40 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                           className="overflow-hidden"
                         >
                           <div className="p-4 pt-0 space-y-3">
-                            {(order.productsList || [order.rawData]).map((prod, idx) => {
+                            {(order.enhancedProducts || order.productsList || [order.rawData]).map((prod, idx) => {
                               const pQuantity = prod['Số lượng'] || 1;
                               const pVariation = prod['Phân loại hàng'] || 'Mặc định';
                               const pSku = prod['SKU phân loại hàng'] || prod['SKU sản phẩm'] || 'Chưa cập nhật';
                               let pName = prod['Tên sản phẩm'] || 'Sản phẩm không xác định';
                               if (pName.length > 50) pName = pName.substring(0, 50) + '...';
                               
-                              let pTotalStr = prod['Tổng giá trị sản phẩm (VND)'] || prod['Giá ưu đãi'] || '0';
-                              let pTotal = typeof pTotalStr === 'string' ? parseFloat(pTotalStr.replace(/,/g, '')) || 0 : pTotalStr;
+                              let pUnitPriceStr = prod['Giá ưu đãi'] || prod['Giá ưu đãi'] || prod['Giá gốc'] || '0';
+                              let pUnitPrice = typeof pUnitPriceStr === 'string' ? parseFloat(pUnitPriceStr.replace(/,/g, '')) || 0 : pUnitPriceStr;
                               
-                              if (!pTotal) pTotal = (order.productAmount / ((order.productsList || []).length || 1));
-                              const pUnitPrice = pTotal / pQuantity;
+                              if (!pUnitPrice) pUnitPrice = (order.productAmount / pQuantity / ((order.productsList || []).length || 1));
+                              const pTotal = pUnitPrice * pQuantity;
 
                               return (
                                 <div key={idx} className="flex items-start gap-4 p-4 rounded bg-[#0f1522] border border-gray-800/50">
-                              {/* Product Image Placeholder */}
-                              <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center shrink-0 border border-gray-700/50 relative overflow-hidden">
-                                <Package size={24} className="text-gray-600" />
-                              </div>
+                                  {/* Product Image */}
+                                  <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center shrink-0 border border-gray-700/50 relative overflow-hidden">
+                                    {prod.imageUrl ? (
+                                      <img src={prod.imageUrl} alt={pName} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Package size={24} className="text-gray-600" />
+                                    )}
+                                  </div>
 
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-[13px] font-semibold text-white mb-1.5 line-clamp-2 leading-tight">
-                                  {pName}
-                                </h4>
-                                <p className="text-[11px] text-gray-400 mb-2 font-normal">Phân loại: {pVariation}</p>
-                                <div className="flex items-center gap-2">
-                                  <span className="bg-[#3b82f6]/20 text-[#3b82f6] px-2 py-0.5 rounded text-[10px] font-medium">Shopee Mall</span>
-                                  <span className="bg-gray-800/80 text-gray-400 px-2 py-0.5 rounded text-[10px] border border-gray-700/50 font-medium">SKU: {pSku}</span>
-                                </div>
-                              </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-[13px] font-semibold text-white mb-1.5 line-clamp-2 leading-tight">
+                                      {pName}
+                                    </h4>
+                                    <p className="text-[11px] text-gray-400 mb-2 font-normal">Phân loại: {pVariation}</p>
+                                    <div className="flex items-center gap-2">
+                                      <span className="bg-[#3b82f6]/20 text-[#3b82f6] px-2 py-0.5 rounded text-[10px] font-medium">Shopee Mall</span>
+                                      <span className="bg-gray-800/80 text-gray-400 px-2 py-0.5 rounded text-[10px] border border-gray-700/50 font-medium">SKU: {pSku}</span>
+                                    </div>
+                                  </div>
 
                               <div className="flex gap-8 text-right self-center">
                                 <div>

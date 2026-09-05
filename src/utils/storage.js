@@ -1,4 +1,5 @@
 import { db } from '../lib/db';
+import { recalculateOrder, generateProductKey } from './index';
 
 /**
  * Get all imported files info
@@ -20,7 +21,7 @@ export const getImportedFiles = async () => {
  */
 export const saveAndMergeOrders = async (newOrders, fileInfo) => {
   try {
-    await db.transaction('rw', db.imports, db.orders, async () => {
+    await db.transaction('rw', db.imports, db.orders, db.products, async () => {
       // 1. Save import metadata
       const fileToSave = {
         id: fileInfo.id,
@@ -34,9 +35,33 @@ export const saveAndMergeOrders = async (newOrders, fileInfo) => {
       
       await db.imports.put(fileToSave);
 
+      // Extract products
+      const newProductsMap = {};
+      newOrders.forEach(order => {
+        (order.productsList || [order.rawData]).forEach(p => {
+          const key = generateProductKey(p);
+          if (!newProductsMap[key]) {
+            newProductsMap[key] = {
+              id: key,
+              sku: p['SKU phân loại hàng'] || p['SKU sản phẩm'] || '',
+              name: p['Tên sản phẩm'] || 'Sản phẩm không xác định',
+              variation: p['Phân loại hàng'] || 'Mặc định',
+              costPrice: 0
+            };
+          }
+        });
+      });
+      
+      // Update DB products without overwriting existing costPrice
+      const existingProducts = await db.products.where('id').anyOf(Object.keys(newProductsMap)).toArray();
+      const existingProductKeys = new Set(existingProducts.map(p => p.id));
+      
+      const productsToInsert = Object.values(newProductsMap).filter(p => !existingProductKeys.has(p.id));
+      if (productsToInsert.length > 0) {
+        await db.products.bulkAdd(productsToInsert);
+      }
+
       // 2. Save orders
-      // In Dexie, put() will automatically update existing records if the primary key (id) matches.
-      // We assume `newOrders` objects already have `id` set to `orderCode` and `fileId` set to `fileInfo.id`.
       await db.orders.bulkPut(newOrders);
     });
 
@@ -118,7 +143,35 @@ export const getFilteredOrders = async (filter = {}) => {
       data = data.filter(order => order.orderDate >= startStr && order.orderDate <= endStr);
     }
 
-    return data;
+    // Fetch products map
+    const allProducts = await db.products.toArray();
+    const productsMap = {};
+    allProducts.forEach(p => productsMap[p.id] = p);
+
+    // Bổ sung các sản phẩm bị thiếu từ data cũ (Migration data cũ)
+    const missingProducts = {};
+    data.forEach(order => {
+      (order.productsList || [order.rawData]).forEach(p => {
+        const key = generateProductKey(p);
+        if (!productsMap[key] && !missingProducts[key]) {
+          missingProducts[key] = {
+            id: key,
+            sku: p['SKU phân loại hàng'] || p['SKU sản phẩm'] || '',
+            name: p['Tên sản phẩm'] || 'Sản phẩm không xác định',
+            variation: p['Phân loại hàng'] || 'Mặc định',
+            costPrice: 0
+          };
+        }
+      });
+    });
+
+    const productsToInsert = Object.values(missingProducts);
+    if (productsToInsert.length > 0) {
+      await db.products.bulkAdd(productsToInsert);
+      productsToInsert.forEach(p => productsMap[p.id] = p);
+    }
+
+    return data.map(order => recalculateOrder(order, productsMap));
   } catch (error) {
     console.error('Error getting filtered orders:', error);
     return [];

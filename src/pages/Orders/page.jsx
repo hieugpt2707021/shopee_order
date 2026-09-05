@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle, Truck, XCircle, RotateCcw, ShoppingBag, Eye,
-  Calendar, ChevronDown, Download, Filter, Search
+  Calendar, ChevronDown, Download, Filter, Search, CircleDollarSign
 } from 'lucide-react';
 import { SystemMetricCard, SystemCompactMetricsBar } from '../../components/ui/SystemMetricCard';
 import { SystemFilter } from '../../components/ui/SystemFilter';
@@ -27,7 +27,7 @@ export const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(ORDER_STATUS.ALL);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
 
   // Drawer
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -225,9 +225,9 @@ export const OrdersPage = () => {
                   isActive={false}
                 />
                 <SystemMetricCard
-                  title="Tổng đơn hàng"
-                  value={metrics ? metrics.totalOrders : 0}
-                  icon={ShoppingBag}
+                  title="Tổng lợi nhuận"
+                  value={metrics ? formatCurrency(metrics.actualProfit) : 0}
+                  icon={CircleDollarSign}
                   colorScheme="purple"
                   isActive={false}
                 />
@@ -247,7 +247,7 @@ export const OrdersPage = () => {
                   { label: 'Đang giao', value: metrics ? metrics.deliveringCount : 0, icon: Truck, color: 'text-blue-500' },
                   { label: 'Đã hủy', value: metrics ? metrics.cancelledCount : 0, icon: XCircle, color: 'text-red-500' },
                   { label: 'Hoàn tiền', value: metrics ? metrics.returnedCount : 0, icon: RotateCcw, color: 'text-orange-500' },
-                  { label: 'Tổng đơn hàng', value: metrics ? metrics.totalOrders : 0, icon: ShoppingBag, color: 'text-purple-500' }
+                  { label: 'Tổng lợi nhuận', value: metrics ? formatCurrency(metrics.actualProfit) : 0, icon: CircleDollarSign, color: 'text-purple-500' }
                 ]}
               />
             </motion.div>
@@ -307,6 +307,7 @@ export const OrdersPage = () => {
 
             <div className="flex-1 flex flex-col min-h-0 mb-6">
               <SystemTableWrapper
+                tableClassName="min-w-[1400px]"
                 pagination={
                   <SystemPagination
                     page={currentPage - 1}
@@ -319,16 +320,16 @@ export const OrdersPage = () => {
                 }
               >
                 <SystemThead>
-                  <SystemTh className="w-14 text-center">STT</SystemTh>
-                  <SystemTh className="w-40">Mã đơn hàng</SystemTh>
-                  <SystemTh className="w-36">Ngày đặt</SystemTh>
-                  <SystemTh className="w-32">Trạng thái</SystemTh>
-                  <SystemTh className="w-32">File nguồn</SystemTh>
+                  <SystemTh className="w-16 text-center">STT</SystemTh>
+                  <SystemTh className="w-48">Mã đơn hàng</SystemTh>
+                  <SystemTh className="w-40">Ngày đặt</SystemTh>
+                  <SystemTh className="w-40">Trạng thái</SystemTh>
+                  <SystemTh className="w-40">File nguồn</SystemTh>
                   <SystemTh>Sản phẩm</SystemTh>
-                  <SystemTh className="w-32">Tiền sản phẩm</SystemTh>
-                  <SystemTh className="w-32">Phí Shopee</SystemTh>
-                  <SystemTh className="w-32">Lợi nhuận</SystemTh>
-                  <SystemTh className="w-24 text-center">Thao tác</SystemTh>
+                  <SystemTh className="w-40">Tiền sản phẩm</SystemTh>
+                  <SystemTh className="w-40">Phí Shopee</SystemTh>
+                  <SystemTh className="w-40">Lợi nhuận</SystemTh>
+                  <SystemTh className="w-32 text-center">Thao tác</SystemTh>
                 </SystemThead>
                 <SystemTbody>
                   {isLoading ? (

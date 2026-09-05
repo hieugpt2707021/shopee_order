@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutGrid, FileText, Settings, Command, ShoppingBag, Moon, Sun, Database } from 'lucide-react';
+import { LayoutGrid, FileText, Settings, Command, ShoppingBag, Moon, Sun, Database, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getStorageUsage } from '../../utils/storage';
 
 const navigation = [
   { name: 'Tổng quan Shopee', href: '/', icon: LayoutGrid },
   { name: 'Đơn hàng', href: '/orders', icon: ShoppingBag },
+  { name: 'Sản phẩm', href: '/products', icon: Package },
   { name: 'Quản lý File', href: '/files', icon: FileText },
 ];
 
