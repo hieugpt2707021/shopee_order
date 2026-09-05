@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../Card';
 import { ArrowRight } from 'lucide-react';
 
 export const TopProducts = ({ products }) => {
+  const navigate = useNavigate();
   const maxCount = products.length > 0 ? products[0].count : 1;
 
   return (
@@ -40,7 +42,10 @@ export const TopProducts = ({ products }) => {
       </div>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-        <button className="text-[12px] text-[#5865f2] font-medium flex items-center gap-1 hover:text-[#4752c4] transition-colors cursor-pointer">
+        <button 
+          onClick={() => navigate('/products')}
+          className="text-[12px] text-[#5865f2] font-medium flex items-center gap-1 hover:text-[#4752c4] transition-colors cursor-pointer"
+        >
           Xem tất cả sản phẩm <ArrowRight size={12} />
         </button>
       </div>
