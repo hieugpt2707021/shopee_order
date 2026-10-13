@@ -18,37 +18,31 @@ import { saveScannedBatch, getScannedBatches, deleteScannedBatch } from '../../u
 import { OrderEditModal } from './OrderEditModal.jsx';
 import { ScannerSettingsModal } from './ScannerSettingsModal.jsx';
 import { ScannedOrdersListModal } from './ScannedOrdersListModal.jsx';
+import { GoogleSheetModal } from './GoogleSheetModal.jsx';
 
 /**
- * Hàm kiểm tra trùng lặp đơn hàng:
- * Trùng Mã vận đơn (trackingCode) HOẶC trùng Mã đơn hàng (orderCode) HOẶC trùng Mã quét (rawCode)
- * Đều sẽ bị BỎ QUA NGAY LẬP TỨC.
+ * Chuẩn hóa chuỗi mã (viết hoa, bỏ khoảng trắng, dấu gạch ngang)
  */
-const checkOrderDuplicate = (candidateTracking, candidateOrder, candidateRaw, currentList) => {
-  const norm = (val) => (val ? val.toString().trim().toUpperCase().replace(/[\s-]/g, '') : '');
-  const tC = norm(candidateTracking);
-  const oC = norm(candidateOrder);
-  const rC = norm(candidateRaw);
+export const normalizeOrderCode = (val) => (val ? val.toString().trim().toUpperCase().replace(/[\s-]/g, '') : '');
 
-  for (const item of currentList) {
-    const itemT = norm(item.trackingCode);
-    const itemO = norm(item.orderCode);
-
-    // 1. Kiểm tra mã vận đơn
-    if (tC && (tC === itemT || tC === itemO)) {
-      return { isDuplicate: true, matchedCode: item.trackingCode || tC, fieldName: 'Mã vận đơn' };
-    }
-    // 2. Kiểm tra mã đơn hàng
-    if (oC && (oC === itemO || oC === itemT)) {
-      return { isDuplicate: true, matchedCode: item.orderCode || oC, fieldName: 'Mã đơn hàng' };
-    }
-    // 3. Kiểm tra mã quét trực tiếp (raw code)
-    if (rC && (rC === itemT || rC === itemO)) {
-      return { isDuplicate: true, matchedCode: rC, fieldName: 'Mã quét' };
-    }
+/**
+ * Xây dựng Set chứa toàn bộ mã vận đơn và mã đơn hàng đã có trong danh sách
+ */
+export const rebuildCodesSet = (orders) => {
+  const set = new Set();
+  if (Array.isArray(orders)) {
+    orders.forEach(item => {
+      const t = normalizeOrderCode(item.trackingCode);
+      const o = normalizeOrderCode(item.orderCode);
+      const r = normalizeOrderCode(item.rawCode);
+      if (t) set.add(t);
+      if (o) set.add(o);
+      if (r) set.add(r);
+    });
   }
-  return { isDuplicate: false, matchedCode: '', fieldName: '' };
+  return set;
 };
+
 
 export const ScanOrdersPage = () => {
   // Tab chế độ: 'barcode' (Camera live) hoặc 'ocr' (Chụp/tải ảnh phiếu) hoặc 'history' (Lịch sử)
@@ -103,17 +97,24 @@ export const ScanOrdersPage = () => {
   const [editingOrder, setEditingOrder] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isListModalOpen, setIsListModalOpen] = useState(false); // Modal xem danh sách đơn trên mobile
+  const [isGoogleSheetModalOpen, setIsGoogleSheetModalOpen] = useState(false); // Modal đồng bộ Google Sheet
   const [toastMessage, setToastMessage] = useState(null); // { type, text, subText }
   const [scannedBatchesList, setScannedBatchesList] = useState([]);
 
-  // Refs
+  // Refs chống stale closure và kiểm tra trùng O(1) tức thời
   const html5QrCodeRef = useRef(null);
   const lastScannedCodeRef = useRef('');
   const lastScannedTimeRef = useRef(0);
   const toastTimeoutRef = useRef(null);
+  const scannedCodesSetRef = useRef(rebuildCodesSet(scannedOrders));
+  const scannedOrdersRef = useRef(scannedOrders);
+  const lastDuplicateAlertMapRef = useRef(new Map());
+  const onBarcodeDetectedRef = useRef(null);
 
-  // Lưu danh sách đơn tạm vào localStorage để không bị mất khi reload
+  // Đồng bộ Set mã vận đơn và localStorage mỗi khi scannedOrders thay đổi
   useEffect(() => {
+    scannedCodesSetRef.current = rebuildCodesSet(scannedOrders);
+    scannedOrdersRef.current = scannedOrders;
     try {
       localStorage.setItem('shopee_current_batch', JSON.stringify(scannedOrders));
     } catch (e) {
@@ -146,7 +147,7 @@ export const ScanOrdersPage = () => {
     }, 3500);
   };
 
-  // Khởi động Html5Qrcode Scanner
+  // Khởi động Html5Qrcode Scanner với vùng quét cực rộng
   const startCamera = useCallback(async () => {
     try {
       setCameraError('');
@@ -170,16 +171,28 @@ export const ScanOrdersPage = () => {
 
       html5QrCodeRef.current = html5QrCode;
 
+      // Khung ngắm barcode mở rộng tối đa (90% width, 75% height) giúp quét cực nhạy
       const config = {
-        fps: 15,
-        qrbox: { width: 260, height: 140 },
+        fps: 20,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const w = Math.min(Math.floor(viewfinderWidth * 0.90), 420);
+          const h = Math.min(Math.floor(viewfinderHeight * 0.75), 260);
+          return {
+            width: Math.max(w, 280),
+            height: Math.max(h, 160)
+          };
+        },
         aspectRatio: 1.33
       };
 
       await html5QrCode.start(
         { facingMode: facingMode },
         config,
-        onBarcodeDetected,
+        (decodedText) => {
+          if (onBarcodeDetectedRef.current) {
+            onBarcodeDetectedRef.current(decodedText);
+          }
+        },
         () => {
           // Frame không có barcode
         }
@@ -233,85 +246,133 @@ export const ScanOrdersPage = () => {
 
   // Xử lý khi phát hiện Barcode hoặc QR Code
   const onBarcodeDetected = async (decodedText) => {
-    const code = decodedText.trim();
-    if (!code) return;
+    const raw = decodedText ? decodedText.trim() : '';
+    const norm = normalizeOrderCode(raw);
+    if (!norm) return;
 
-    // Chặn trùng lặp liên tục trong 2 giây (tránh máy quét bíp nhiều lần 1 giây)
     const now = Date.now();
-    if (code === lastScannedCodeRef.current && now - lastScannedTimeRef.current < 2500) {
-      return;
-    }
-    lastScannedCodeRef.current = code;
-    lastScannedTimeRef.current = now;
 
-    // 1. Kiểm tra trùng lặp ngay với mã quét
-    const dupCheckInitial = checkOrderDuplicate('', '', code, scannedOrders);
-    if (dupCheckInitial.isDuplicate) {
-      soundEffects.playDuplicateBeep();
-      if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
-      showToast(
-        'warning',
-        '⚠️ Bỏ qua đơn trùng lặp!',
-        `${dupCheckInitial.fieldName} [${dupCheckInitial.matchedCode}] đã có trong danh sách.`
-      );
-      return; // BỎ QUA NGAY LẬP TỨC
-    }
-
-    // 2. Tra cứu đơn hàng trong cơ sở dữ liệu IndexedDB nếu có
-    const dbMatch = await lookupInDatabase(code);
-
-    // 3. Kiểm tra trùng lặp lại với kết quả DB (cả trackingCode và orderCode)
-    if (dbMatch) {
-      const dupCheckDb = checkOrderDuplicate(dbMatch.trackingCode, dbMatch.orderCode, code, scannedOrders);
-      if (dupCheckDb.isDuplicate) {
+    // 1. KIỂM TRA TRÙNG LẶP ĐỒNG BỘ QUA SET REF (Triệt để 100%, không bị ảnh hưởng bởi stale closure)
+    if (scannedCodesSetRef.current.has(norm)) {
+      const lastAlert = lastDuplicateAlertMapRef.current.get(norm) || 0;
+      if (now - lastAlert > 2000) {
+        lastDuplicateAlertMapRef.current.set(norm, now);
         soundEffects.playDuplicateBeep();
         if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
         showToast(
           'warning',
           '⚠️ Bỏ qua đơn trùng lặp!',
-          `${dupCheckDb.fieldName} [${dupCheckDb.matchedCode}] đã có trong danh sách.`
+          `Mã [${raw}] đã có trong danh sách đơn đã quét.`
         );
-        return; // BỎ QUA NGAY LẬP TỨC
       }
+      return; // BỎ QUA NGAY LẬP TỨC
     }
+
+    // 2. Chặn bíp liên tục trong 2 giây cho cùng 1 barcode
+    if (raw === lastScannedCodeRef.current && now - lastScannedTimeRef.current < 2000) {
+      return;
+    }
+    lastScannedCodeRef.current = raw;
+    lastScannedTimeRef.current = now;
+
+    // 3. Tra cứu trong cơ sở dữ liệu IndexedDB nếu có
+    const dbMatch = await lookupInDatabase(raw);
+
+    const normDbTrack = dbMatch ? normalizeOrderCode(dbMatch.trackingCode) : '';
+    const normDbOrder = dbMatch ? normalizeOrderCode(dbMatch.orderCode) : '';
+
+    // 4. Kiểm tra trùng lặp với thông tin từ Database (Cả mã đơn và mã vận đơn)
+    if (
+      (normDbTrack && scannedCodesSetRef.current.has(normDbTrack)) ||
+      (normDbOrder && scannedCodesSetRef.current.has(normDbOrder))
+    ) {
+      const matched = (normDbTrack && scannedCodesSetRef.current.has(normDbTrack))
+        ? dbMatch.trackingCode
+        : dbMatch.orderCode;
+
+      const lastAlert = lastDuplicateAlertMapRef.current.get(norm) || 0;
+      if (now - lastAlert > 2000) {
+        lastDuplicateAlertMapRef.current.set(norm, now);
+        soundEffects.playDuplicateBeep();
+        if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
+        showToast(
+          'warning',
+          '⚠️ Bỏ qua đơn trùng lặp!',
+          `Mã [${matched}] đã có trong danh sách đơn đã quét.`
+        );
+      }
+      return; // BỎ QUA NGAY LẬP TỨC
+    }
+
+    // 5. THÊM NGAY LẬP TỨC VÀO SET ĐỒNG BỘ ĐỂ CHẶN TỨC THÌ CÁC FRAME KẾ TIẾP
+    scannedCodesSetRef.current.add(norm);
+    if (normDbTrack) scannedCodesSetRef.current.add(normDbTrack);
+    if (normDbOrder) scannedCodesSetRef.current.add(normDbOrder);
+
+    const currentTime = new Date();
+    const timeStr = currentTime.toLocaleTimeString('vi-VN', { hour12: false });
+    const dateStr = currentTime.toLocaleDateString('vi-VN');
 
     let newOrder;
     if (dbMatch) {
       newOrder = {
         id: `scanned_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        scannedAt: new Date().toLocaleString('vi-VN'),
+        scannedAt: `${timeStr} ${dateStr}`,
+        scannedTime: timeStr,
+        scannedDate: dateStr,
+        rawCode: raw,
         ...dbMatch
       };
       showToast(
         'success',
-        `✅ Đã quét: ${dbMatch.trackingCode || code}`,
+        `✅ Đã quét: ${dbMatch.trackingCode || raw}`,
         `${dbMatch.productName || 'Đơn hàng'} - ${formatCurrency(dbMatch.codAmount)} đ`
       );
     } else {
       // Đơn mới chưa có trong DB Shopee
       newOrder = {
         id: `scanned_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        scannedAt: new Date().toLocaleString('vi-VN'),
-        trackingCode: code,
-        orderCode: code.length >= 14 ? code : '',
+        scannedAt: `${timeStr} ${dateStr}`,
+        scannedTime: timeStr,
+        scannedDate: dateStr,
+        rawCode: raw,
+        trackingCode: raw,
+        orderCode: raw.length >= 14 ? raw : '',
         productName: 'Chưa cập nhật tên SP',
         variation: '',
         quantity: 1,
         codAmount: 0,
-        orderDate: new Date().toLocaleDateString('vi-VN'),
+        orderDate: dateStr,
         weight: '',
-        carrier: code.startsWith('GYM') ? 'GHN' : (code.startsWith('SPX') ? 'SPX Express' : 'Shopee'),
+        carrier: raw.startsWith('GYM') ? 'GHN' : (raw.startsWith('SPX') ? 'SPX Express' : 'Shopee'),
         recipient: '',
         recipientAddress: ''
       };
-      showToast('success', `✅ Đã quét mã: ${code}`, 'Chưa có trong dữ liệu, đã ghi nhận mã vận đơn.');
+      showToast('success', `✅ Đã quét mã: ${raw}`, 'Chưa có trong dữ liệu, đã ghi nhận mã vận đơn.');
     }
 
     soundEffects.playSuccessBeep();
     if (settings.vibrateEnabled) soundEffects.vibrateSuccess();
 
-    setScannedOrders(prev => [newOrder, ...prev]);
+    // 6. Cập nhật state với bộ lọc chống trùng tuyệt đối
+    setScannedOrders(prev => {
+      const alreadyInPrev = prev.some(item => {
+        const itemT = normalizeOrderCode(item.trackingCode);
+        const itemO = normalizeOrderCode(item.orderCode);
+        const itemR = normalizeOrderCode(item.rawCode);
+        return (
+          (norm && (norm === itemT || norm === itemO || norm === itemR)) ||
+          (normDbTrack && (normDbTrack === itemT || normDbTrack === itemO)) ||
+          (normDbOrder && (normDbOrder === itemO || normDbOrder === itemT))
+        );
+      });
+      if (alreadyInPrev) return prev;
+      return [newOrder, ...prev];
+    });
   };
+
+  // Luôn cập nhật ref cho callback quét
+  onBarcodeDetectedRef.current = onBarcodeDetected;
 
   // Xử lý Chụp ảnh / Tải ảnh phiếu đơn hàng để OCR
   const handleImageUpload = async (event) => {
@@ -350,37 +411,49 @@ export const ScanOrdersPage = () => {
           return;
         }
 
-        // KIỂM TRA TRÙNG LẶP TOÀN DIỆN CHO OCR:
-        // Trùng mã vận đơn HOẶC trùng mã đơn hàng là BỎ QUA NGAY!
-        const dupCheckOcr = checkOrderDuplicate(
-          parsedResult.trackingCode,
-          parsedResult.orderCode,
-          '',
-          scannedOrders
-        );
+        // KIỂM TRA TRÙNG LẶP TOÀN DIỆN CHO OCR QUA SET REF:
+        const normOcrTrack = normalizeOrderCode(parsedResult.trackingCode);
+        const normOcrOrder = normalizeOrderCode(parsedResult.orderCode);
 
-        if (dupCheckOcr.isDuplicate) {
+        if (
+          (normOcrTrack && scannedCodesSetRef.current.has(normOcrTrack)) ||
+          (normOcrOrder && scannedCodesSetRef.current.has(normOcrOrder))
+        ) {
+          const matched = (normOcrTrack && scannedCodesSetRef.current.has(normOcrTrack))
+            ? parsedResult.trackingCode
+            : parsedResult.orderCode;
+
           soundEffects.playDuplicateBeep();
           if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
           showToast(
             'warning',
             '⚠️ Bỏ qua đơn trùng lặp!',
-            `${dupCheckOcr.fieldName} [${dupCheckOcr.matchedCode}] đã có trong danh sách.`
+            `Mã [${matched}] đã có trong danh sách đơn đã quét.`
           );
           setIsOcrProcessing(false);
           return; // BỎ QUA NGAY LẬP TỨC
         }
 
+        if (normOcrTrack) scannedCodesSetRef.current.add(normOcrTrack);
+        if (normOcrOrder) scannedCodesSetRef.current.add(normOcrOrder);
+
+        const currentTime = new Date();
+        const timeStr = currentTime.toLocaleTimeString('vi-VN', { hour12: false });
+        const dateStr = currentTime.toLocaleDateString('vi-VN');
+
         const newOrder = {
           id: `scanned_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-          scannedAt: new Date().toLocaleString('vi-VN'),
+          scannedAt: `${timeStr} ${dateStr}`,
+          scannedTime: timeStr,
+          scannedDate: dateStr,
+          rawCode: parsedResult.trackingCode || parsedResult.orderCode || '',
           trackingCode: parsedResult.trackingCode || '',
           orderCode: parsedResult.orderCode || '',
           productName: parsedResult.productName || 'Sản phẩm Shopee',
           variation: parsedResult.variation || '',
           quantity: parsedResult.quantity || 1,
           codAmount: parsedResult.codAmount || 0,
-          orderDate: parsedResult.orderDate || new Date().toLocaleDateString('vi-VN'),
+          orderDate: parsedResult.orderDate || dateStr,
           weight: parsedResult.weight || '',
           carrier: parsedResult.carrier || 'Shopee',
           recipient: parsedResult.recipient || '',
@@ -390,7 +463,19 @@ export const ScanOrdersPage = () => {
         soundEffects.playSuccessBeep();
         if (settings.vibrateEnabled) soundEffects.vibrateSuccess();
 
-        setScannedOrders(prev => [newOrder, ...prev]);
+        setScannedOrders(prev => {
+          const isDup = prev.some(item => {
+            const itemT = normalizeOrderCode(item.trackingCode);
+            const itemO = normalizeOrderCode(item.orderCode);
+            return (
+              (normOcrTrack && (normOcrTrack === itemT || normOcrTrack === itemO)) ||
+              (normOcrOrder && (normOcrOrder === itemO || normOcrOrder === itemT))
+            );
+          });
+          if (isDup) return prev;
+          return [newOrder, ...prev];
+        });
+
         showToast(
           'success',
           `✅ Nhận diện thành công: ${newOrder.trackingCode || newOrder.orderCode || 'Đơn hàng'}`,
@@ -462,6 +547,8 @@ export const ScanOrdersPage = () => {
   // Xóa toàn bộ danh sách hiện tại
   const handleClearAll = () => {
     if (window.confirm('Bạn có chắc muốn xóa tất cả đơn hàng đã quét trong đợt này?')) {
+      scannedCodesSetRef.current.clear();
+      lastDuplicateAlertMapRef.current.clear();
       setScannedOrders([]);
       localStorage.removeItem('shopee_current_batch');
       showToast('success', 'Đã làm mới danh sách quét');
@@ -600,24 +687,26 @@ export const ScanOrdersPage = () => {
           <div className="w-full md:w-[460px] lg:w-[500px] shrink-0 flex flex-col bg-black relative border-r border-gray-200 dark:border-gray-800">
             {activeTab === 'barcode' ? (
               /* LIVE BARCODE / QR SCANNER VIEWPORT */
-              <div className="relative h-[220px] md:flex-1 md:min-h-[300px] flex flex-col justify-center items-center overflow-hidden bg-black shrink-0">
+              <div className="relative h-[290px] sm:h-[340px] md:flex-1 md:min-h-[400px] flex flex-col justify-center items-center overflow-hidden bg-black shrink-0">
                 {/* HTML5 QR Code Mount Target */}
-                <div id="barcode-reader" className="w-full h-full object-cover"></div>
+                <div id="barcode-reader" className="w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"></div>
 
-                {/* Laser scan animation overlay */}
+                {/* Laser scan animation overlay - VÙNG QUÉT RỘNG DỄ NHẮM */}
                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3">
-                  <div className="relative w-[260px] h-[135px] rounded-xl border-2 border-indigo-400/80 shadow-[0_0_15px_rgba(99,102,241,0.25)] flex items-center justify-center">
-                    {/* Corner Reticles */}
-                    <div className="absolute -top-1 -left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-emerald-400"></div>
-                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-emerald-400"></div>
-                    <div className="absolute -bottom-1 -left-1 w-3.5 h-3.5 border-b-2 border-l-2 border-emerald-400"></div>
-                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 border-b-2 border-r-2 border-emerald-400"></div>
+                  <div className="relative w-[90%] max-w-[420px] h-[75%] max-h-[250px] rounded-2xl border-2 border-emerald-400/90 shadow-[0_0_25px_rgba(52,211,153,0.35)] flex items-center justify-center backdrop-blur-[0.5px]">
+                    {/* 4 Góc định vị nổi bật */}
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl shadow-[0_0_10px_#34d399]"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl shadow-[0_0_10px_#34d399]"></div>
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl shadow-[0_0_10px_#34d399]"></div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl shadow-[0_0_10px_#34d399]"></div>
 
-                    {/* Animated Laser Line */}
-                    <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_8px_#34d399] animate-pulse"></div>
+                    {/* Animated Laser Scanning Line */}
+                    <div className="w-full h-[2.5px] bg-gradient-to-r from-transparent via-emerald-300 to-transparent shadow-[0_0_12px_#34d399] animate-pulse"></div>
 
-                    <span className="absolute -bottom-5 text-[10px] font-medium text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
-                      Đưa mã vạch vào khung ngắm
+                    {/* Nhãn hướng dẫn góc dưới */}
+                    <span className="absolute -bottom-6 text-[10px] sm:text-xs font-semibold text-white/95 bg-black/75 px-3 py-1 rounded-full backdrop-blur-md shadow-lg border border-white/10 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      Vùng quét mở rộng • Lia mã vạch vào khung
                     </span>
                   </div>
                 </div>
@@ -723,23 +812,37 @@ export const ScanOrdersPage = () => {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setIsListModalOpen(true)}
-                    className="px-2.5 py-1.5 bg-[#1c2230] hover:bg-[#252d3f] text-[#5865f2] dark:text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                    className="px-2 py-1.5 bg-[#1c2230] hover:bg-[#252d3f] text-[#5865f2] dark:text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
                   >
                     <Eye size={13} />
-                    <span>Xem đơn ({totalOrdersCount})</span>
+                    <span>Xem ({totalOrdersCount})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsGoogleSheetModalOpen(true)}
+                    disabled={totalOrdersCount === 0}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
+                      totalOrdersCount > 0
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    }`}
+                    title="Đẩy lên Google Sheet"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Sheet</span>
                   </button>
 
                   <button
                     onClick={handleExportExcel}
                     disabled={totalOrdersCount === 0}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
+                    className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
                       totalOrdersCount > 0
                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
                         : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     <FileSpreadsheet size={13} />
-                    <span>Xuất Excel</span>
+                    <span>Excel</span>
                   </button>
                 </div>
               </div>
@@ -973,18 +1076,34 @@ export const ScanOrdersPage = () => {
                   </span>
                 </div>
 
-                <button
-                  onClick={handleExportExcel}
-                  disabled={totalOrdersCount === 0}
-                  className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
-                    totalOrdersCount > 0
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 active:scale-95'
-                      : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
-                  }`}
-                >
-                  <FileSpreadsheet size={16} />
-                  <span>Xác nhận & Xuất Excel</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsGoogleSheetModalOpen(true)}
+                    disabled={totalOrdersCount === 0}
+                    className={`px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer ${
+                      totalOrdersCount > 0
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+                    }`}
+                    title="Đẩy lên Google Sheet"
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>Đẩy Google Sheet</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportExcel}
+                    disabled={totalOrdersCount === 0}
+                    className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                      totalOrdersCount > 0
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 active:scale-95'
+                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+                    }`}
+                  >
+                    <FileSpreadsheet size={16} />
+                    <span>Xác nhận & Xuất Excel</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1003,6 +1122,20 @@ export const ScanOrdersPage = () => {
         onDeleteOrder={handleDeleteOrder}
         onClearAll={handleClearAll}
         onExportExcel={handleExportExcel}
+        onOpenGoogleSheet={() => {
+          setIsListModalOpen(false);
+          setIsGoogleSheetModalOpen(true);
+        }}
+      />
+
+      {/* Google Sheet Sync Modal */}
+      <GoogleSheetModal
+        isOpen={isGoogleSheetModalOpen}
+        onClose={() => setIsGoogleSheetModalOpen(false)}
+        scannedOrders={scannedOrders}
+        onSuccess={() => {
+          showToast('success', 'Đã đồng bộ đơn hàng lên Google Sheet!');
+        }}
       />
 
       {/* Edit Order Modal */}

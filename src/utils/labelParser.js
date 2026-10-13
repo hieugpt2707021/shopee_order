@@ -332,21 +332,40 @@ export function exportScannedOrdersToExcel(ordersList, fileName = '') {
     throw new Error('Danh sách đơn hàng quét rỗng.');
   }
 
-  const exportRows = ordersList.map((item, index) => ({
-    'STT': index + 1,
-    'Mã vận đơn': item.trackingCode || '',
-    'Mã đơn hàng': item.orderCode || '',
-    'Tên sản phẩm': item.productName || '',
-    'Phân loại hàng': item.variation || '',
-    'Số lượng': item.quantity || 1,
-    'Tiền thu COD (VNĐ)': item.codAmount || 0,
-    'Ngày đặt hàng': item.orderDate || '',
-    'Khối lượng': item.weight || '',
-    'Đơn vị vận chuyển': item.carrier || '',
-    'Người nhận': item.recipient || '',
-    'Địa chỉ giao hàng': item.recipientAddress || '',
-    'Thời gian quét': item.scannedAt || new Date().toLocaleString('vi-VN')
-  }));
+  const now = new Date();
+  const defaultDate = now.toLocaleDateString('vi-VN');
+  const defaultTime = now.toLocaleTimeString('vi-VN', { hour12: false });
+
+  const exportRows = ordersList.map((item, index) => {
+    let timeStr = item.scannedTime || defaultTime;
+    let dateStr = item.scannedDate || defaultDate;
+
+    if (!item.scannedTime && item.scannedAt) {
+      const parts = item.scannedAt.replace(',', '').split(' ');
+      if (parts.length >= 2) {
+        timeStr = parts[0];
+        dateStr = parts[1];
+      }
+    }
+
+    return {
+      'STT': index + 1,
+      'Mã vận đơn': item.trackingCode || '',
+      'Mã đơn hàng': item.orderCode || '',
+      'Thời gian quét': timeStr,
+      'Ngày quét': dateStr,
+      'Tổng đơn trong ngày': ordersList.length,
+      'Tên sản phẩm': item.productName || '',
+      'Phân loại hàng': item.variation || '',
+      'Số lượng': item.quantity || 1,
+      'Tiền thu COD (VNĐ)': item.codAmount || 0,
+      'Ngày đặt hàng': item.orderDate || '',
+      'Khối lượng': item.weight || '',
+      'Đơn vị vận chuyển': item.carrier || '',
+      'Người nhận': item.recipient || '',
+      'Địa chỉ giao hàng': item.recipientAddress || ''
+    };
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(exportRows);
 
@@ -355,24 +374,25 @@ export function exportScannedOrdersToExcel(ordersList, fileName = '') {
     { wch: 6 },  // STT
     { wch: 18 }, // Mã vận đơn
     { wch: 22 }, // Mã đơn hàng
-    { wch: 45 }, // Tên SP
+    { wch: 16 }, // Thời gian quét
+    { wch: 14 }, // Ngày quét
+    { wch: 18 }, // Tổng đơn trong ngày
+    { wch: 40 }, // Tên SP
     { wch: 20 }, // Phân loại
     { wch: 10 }, // SL
     { wch: 18 }, // Tiền COD
-    { wch: 20 }, // Ngày đặt
+    { wch: 18 }, // Ngày đặt
     { wch: 14 }, // Khối lượng
-    { wch: 20 }, // Đơn vị VC
-    { wch: 22 }, // Người nhận
-    { wch: 35 }, // Địa chỉ
-    { wch: 20 }  // Thời gian quét
+    { wch: 18 }, // Đơn vị VC
+    { wch: 20 }, // Người nhận
+    { wch: 35 }  // Địa chỉ
   ];
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Đơn hàng đã quét');
 
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-  const actualFileName = fileName || `Danh_sach_don_hang_quet_${dateStr}.xlsx`;
+  const fileDateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const actualFileName = fileName || `Danh_sach_don_hang_quet_${fileDateStr}.xlsx`;
 
   XLSX.writeFile(workbook, actualFileName);
   return actualFileName;

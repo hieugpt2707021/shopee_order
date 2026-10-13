@@ -12,7 +12,8 @@ export const ScannedOrdersListModal = ({
   onEditOrder,
   onDeleteOrder,
   onClearAll,
-  onExportExcel
+  onExportExcel,
+  onOpenGoogleSheet
 }) => {
   if (!isOpen) return null;
 
@@ -168,21 +169,40 @@ export const ScannedOrdersListModal = ({
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              onExportExcel();
-              onClose();
-            }}
-            disabled={totalOrdersCount === 0}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
-              totalOrdersCount > 0
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 active:scale-95'
-                : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
-            }`}
-          >
-            <FileSpreadsheet size={16} />
-            <span>Xác nhận & Xuất Excel</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (onOpenGoogleSheet) onOpenGoogleSheet();
+              }}
+              disabled={totalOrdersCount === 0}
+              className={`px-3 sm:px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                totalOrdersCount > 0
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm active:scale-95'
+                  : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+              }`}
+              title="Đẩy lên Google Sheet"
+            >
+              <FileSpreadsheet size={15} />
+              <span className="hidden sm:inline">Google Sheet</span>
+              <span className="sm:hidden">Sheet</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onExportExcel();
+                onClose();
+              }}
+              disabled={totalOrdersCount === 0}
+              className={`px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer ${
+                totalOrdersCount > 0
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 active:scale-95'
+                  : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+              }`}
+            >
+              <FileSpreadsheet size={15} />
+              <span>Xuất Excel</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
