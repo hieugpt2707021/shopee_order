@@ -51,76 +51,116 @@ export const AppLayout = () => {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#fbfbfa] dark:bg-[#131720]">
         
         {/* Page Content with Route Transition */}
-        <div className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
+        <div className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           <div className="flex-1 flex flex-col min-h-0">
             <Outlet />
           </div>
         </div>
 
-        {/* Mobile Bottom Navigation Bar (md:hidden) */}
-        <nav 
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-          className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-white dark:bg-[#131720] border-t border-gray-200 dark:border-gray-800 z-40 flex items-center justify-around px-2 shadow-lg backdrop-blur-md"
+        {/* Floating Liquid Glass Mobile Bottom Navigation Bar (md:hidden) */}
+        <div 
+          className="md:hidden fixed inset-x-3.5 sm:inset-x-6 z-40 pointer-events-none"
+          style={{ bottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
         >
-          <Link
-            to="/"
-            className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
-              location.pathname === '/' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <LayoutGrid size={18} />
-            <span className="text-[10px] mt-0.5">Tổng quan</span>
-          </Link>
+          <nav className="pointer-events-auto max-w-md mx-auto h-[66px] rounded-full bg-white/80 dark:bg-[#161b26]/85 backdrop-blur-2xl border border-white/70 dark:border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.14),inset_0_1px_1.5px_rgba(255,255,255,0.85)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.12)] flex items-center justify-around px-2.5">
+            {/* Tổng quan */}
+            <Link
+              to="/"
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                location.pathname === '/'
+                  ? 'text-[#5865f2] dark:text-indigo-400 font-bold'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <LayoutGrid size={20} className="transition-transform group-active:scale-90" />
+              <span className="text-[10px] mt-0.5 tracking-tight font-medium">Tổng quan</span>
+              {location.pathname === '/' ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 mt-0.5 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+              ) : (
+                <span className="w-1.5 h-1.5 mt-0.5" />
+              )}
+            </Link>
 
-          <Link
-            to="/orders"
-            className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
-              location.pathname === '/orders' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <ShoppingBag size={18} />
-            <span className="text-[10px] mt-0.5">Đơn hàng</span>
-          </Link>
+            {/* Đơn hàng */}
+            <Link
+              to="/orders"
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                location.pathname === '/orders'
+                  ? 'text-[#5865f2] dark:text-indigo-400 font-bold'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <ShoppingBag size={20} className="transition-transform group-active:scale-90" />
+              <span className="text-[10px] mt-0.5 tracking-tight font-medium">Đơn hàng</span>
+              {location.pathname === '/orders' ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 mt-0.5 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+              ) : (
+                <span className="w-1.5 h-1.5 mt-0.5" />
+              )}
+            </Link>
 
-          {/* Central Featured Scan Button */}
-          <Link
-            to="/scan"
-            className="flex flex-col items-center justify-center -mt-5 group"
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform group-active:scale-90 ${
-              location.pathname === '/scan'
-                ? 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-indigo-500/40 ring-4 ring-indigo-500/20'
-                : 'bg-gradient-to-tr from-indigo-600 to-violet-600 shadow-indigo-600/30'
-            }`}>
-              <ScanLine size={22} className="animate-pulse" />
-            </div>
-            <span className={`text-[10px] mt-1 font-bold ${
-              location.pathname === '/scan' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'
-            }`}>
-              Quét đơn
-            </span>
-          </Link>
+            {/* Central Elevated Scan Button */}
+            <Link
+              to="/scan"
+              className="flex flex-col items-center justify-center -mt-6 flex-1 group relative"
+            >
+              <div
+                className={`w-[54px] h-[54px] rounded-full flex items-center justify-center text-white transition-all duration-300 group-active:scale-90 ${
+                  location.pathname === '/scan'
+                    ? 'bg-gradient-to-tr from-[#5865f2] to-[#7b85f5] shadow-[0_8px_24px_rgba(88,101,242,0.55)] ring-4 ring-white/95 dark:ring-[#161b26] scale-105'
+                    : 'bg-gradient-to-tr from-[#5865f2] to-[#6e7bf7] shadow-[0_8px_20px_rgba(88,101,242,0.4)] ring-4 ring-white/95 dark:ring-[#161b26] hover:scale-105'
+                }`}
+              >
+                <ScanLine size={24} className={location.pathname === '/scan' ? 'animate-pulse' : ''} />
+              </div>
+              <span
+                className={`text-[10px] mt-0.5 font-bold tracking-tight ${
+                  location.pathname === '/scan'
+                    ? 'text-[#5865f2] dark:text-indigo-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                Quét đơn
+              </span>
+            </Link>
 
-          <Link
-            to="/products"
-            className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
-              location.pathname === '/products' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <Package size={18} />
-            <span className="text-[10px] mt-0.5">Sản phẩm</span>
-          </Link>
+            {/* Sản phẩm */}
+            <Link
+              to="/products"
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                location.pathname === '/products'
+                  ? 'text-[#5865f2] dark:text-indigo-400 font-bold'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Package size={20} className="transition-transform group-active:scale-90" />
+              <span className="text-[10px] mt-0.5 tracking-tight font-medium">Sản phẩm</span>
+              {location.pathname === '/products' ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 mt-0.5 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+              ) : (
+                <span className="w-1.5 h-1.5 mt-0.5" />
+              )}
+            </Link>
 
-          <Link
-            to="/settings"
-            className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
-              location.pathname === '/settings' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <Settings size={18} />
-            <span className="text-[10px] mt-0.5">Cài đặt</span>
-          </Link>
-        </nav>
+            {/* Cài đặt */}
+            <Link
+              to="/settings"
+              className={`flex flex-col items-center justify-center flex-1 py-1 transition-all group ${
+                location.pathname === '/settings'
+                  ? 'text-[#5865f2] dark:text-indigo-400 font-bold'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Settings size={20} className="transition-transform group-active:scale-90" />
+              <span className="text-[10px] mt-0.5 tracking-tight font-medium">Cài đặt</span>
+              {location.pathname === '/settings' ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 mt-0.5 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+              ) : (
+                <span className="w-1.5 h-1.5 mt-0.5" />
+              )}
+            </Link>
+          </nav>
+        </div>
       </main>
     </div>
   );
