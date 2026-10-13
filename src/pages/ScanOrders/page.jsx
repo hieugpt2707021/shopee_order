@@ -691,17 +691,17 @@ export const ScanOrdersPage = () => {
   const latestOrder = scannedOrders[0]; // Đơn vừa được quét gần nhất
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#f4f5f7] dark:bg-[#0e121a] text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
-      {/* Toast Notification Banner (Nổi bật trên cùng màn hình điện thoại) */}
+    <div className="flex-1 flex flex-col min-h-0 bg-[#fbfbfa] dark:bg-[#131720] text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+      {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-2.5 left-3 right-3 z-50 flex justify-center pointer-events-none">
+        <div className="fixed top-3 left-4 right-4 z-50 flex justify-center pointer-events-none">
           <div
-            className={`max-w-md w-full p-3 rounded-xl shadow-2xl border backdrop-blur-md flex items-start gap-2.5 pointer-events-auto transform transition-all duration-300 animate-slide-down ${
+            className={`max-w-md w-full p-3 rounded shadow-lg border flex items-start gap-2.5 pointer-events-auto transform transition-all duration-300 animate-slide-down ${
               toastMessage.type === 'success'
-                ? 'bg-emerald-600/95 text-white border-emerald-400 shadow-emerald-500/20'
+                ? 'bg-emerald-600 text-white border-emerald-500'
                 : toastMessage.type === 'warning'
-                ? 'bg-amber-600/95 text-white border-amber-400 shadow-amber-500/20'
-                : 'bg-rose-600/95 text-white border-rose-400 shadow-rose-500/20'
+                ? 'bg-amber-600 text-white border-amber-500'
+                : 'bg-rose-600 text-white border-rose-500'
             }`}
           >
             {toastMessage.type === 'success' ? (
@@ -719,36 +719,38 @@ export const ScanOrdersPage = () => {
         </div>
       )}
 
-      {/* Header Bar */}
-      <div className="shrink-0 bg-white dark:bg-[#131720] border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
-            <Scan size={16} />
+      {/* HEADER - Đồng bộ theo chuẩn các trang Dashboard / Orders */}
+      <div className="flex-shrink-0 py-3.5 px-4 md:px-8 bg-[#fbfbfa] dark:bg-[#131720] border-b border-gray-100 dark:border-gray-800 z-30 relative flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded bg-indigo-50/80 dark:bg-indigo-500/10 flex items-center justify-center text-[#5865f2] border border-indigo-100/50 dark:border-indigo-500/20 shrink-0">
+            <Scan size={20} strokeWidth={2.5} />
           </div>
-          <div>
-            <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white flex items-center gap-1.5">
-              Quét đơn hàng
-              <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded">
-                MOBILE
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-white leading-tight tracking-tight">
+                Quét đơn hàng
+              </h1>
+              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/20 text-[#5865f2] dark:text-indigo-300 font-bold px-1.5 py-0.5 rounded border border-indigo-200/50 dark:border-indigo-500/30">
+                BARCODE / OCR
               </span>
-            </h1>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">
-              Nhận diện phiếu, mã vận đơn & xuất Excel
+            </div>
+            <p className="text-[11px] md:text-[12px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+              Nhận diện mã vận đơn, phiếu giao hàng & đồng bộ Google Sheets
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => soundEffects.setMuted(!settings.soundEnabled)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            className="h-[36px] px-3 bg-gray-100 dark:bg-[#1c212a] border border-gray-200 dark:border-gray-800 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
             title={settings.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
           >
             {settings.soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+            className="h-[36px] px-3 bg-gray-100 dark:bg-[#1c212a] border border-gray-200 dark:border-gray-800 rounded flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
             title="Cài đặt quét"
           >
             <Settings2 size={16} />
@@ -756,40 +758,40 @@ export const ScanOrdersPage = () => {
         </div>
       </div>
 
-      {/* Tabs Switcher */}
-      <div className="shrink-0 bg-white dark:bg-[#131720] px-3.5 py-1.5 border-b border-gray-100 dark:border-gray-800/80">
-        <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-[#1c2230] rounded-xl text-xs font-semibold">
+      {/* Tabs Switcher - Chuẩn phẳng theo hệ thống */}
+      <div className="shrink-0 bg-[#fbfbfa] dark:bg-[#131720] px-4 md:px-8 py-2 border-b border-gray-100 dark:border-gray-800">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 dark:bg-[#1c212a] border border-gray-200/80 dark:border-gray-800 rounded text-xs font-semibold">
           <button
             onClick={() => setActiveTab('barcode')}
-            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+            className={`py-1.5 rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'barcode'
-                ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                ? 'bg-white dark:bg-[#2a2d36] text-[#5865f2] dark:text-white shadow-none font-bold'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <Barcode size={13} /> Quét Barcode
+            <Barcode size={14} /> Quét Barcode
           </button>
 
           <button
             onClick={() => setActiveTab('ocr')}
-            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+            className={`py-1.5 rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'ocr'
-                ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                ? 'bg-white dark:bg-[#2a2d36] text-[#5865f2] dark:text-white shadow-none font-bold'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <Camera size={13} /> Chụp Phiếu
+            <Camera size={14} /> Chụp Phiếu
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
+            className={`py-1.5 rounded flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                ? 'bg-white dark:bg-[#2a2d36] text-[#5865f2] dark:text-white shadow-none font-bold'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
-            <Layers size={13} /> Lịch sử ({scannedBatchesList.length})
+            <Layers size={14} /> Lịch sử ({scannedBatchesList.length})
           </button>
         </div>
       </div>
@@ -798,7 +800,7 @@ export const ScanOrdersPage = () => {
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Left Column: Camera / Scan Viewport + Mobile Interactive Area */}
         {activeTab !== 'history' && (
-          <div className="w-full md:w-[460px] lg:w-[500px] shrink-0 flex flex-col bg-black relative border-r border-gray-200 dark:border-gray-800">
+          <div className="w-full md:w-[460px] lg:w-[500px] shrink-0 flex flex-col bg-[#0b0f17] relative border-r border-gray-100 dark:border-gray-800">
             {activeTab === 'barcode' ? (
               /* LIVE BARCODE / QR SCANNER VIEWPORT */
               <div className="relative h-[290px] sm:h-[340px] md:flex-1 md:min-h-[400px] flex flex-col justify-center items-center overflow-hidden bg-black shrink-0">
@@ -807,18 +809,18 @@ export const ScanOrdersPage = () => {
 
                 {/* Laser scan animation overlay - VÙNG QUÉT RỘNG DỄ NHẮM */}
                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3">
-                  <div className="relative w-[90%] max-w-[420px] h-[75%] max-h-[250px] rounded-2xl border-2 border-emerald-400/90 shadow-[0_0_25px_rgba(52,211,153,0.35)] flex items-center justify-center backdrop-blur-[0.5px]">
+                  <div className="relative w-[90%] max-w-[420px] h-[75%] max-h-[250px] rounded-lg border-2 border-emerald-400/90 shadow-none flex items-center justify-center backdrop-blur-[0.5px]">
                     {/* 4 Góc định vị nổi bật */}
-                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl shadow-[0_0_10px_#34d399]"></div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl shadow-[0_0_10px_#34d399]"></div>
-                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl shadow-[0_0_10px_#34d399]"></div>
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-xl shadow-[0_0_10px_#34d399]"></div>
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-3 border-l-3 border-emerald-400 rounded-tl shadow-none"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-3 border-r-3 border-emerald-400 rounded-tr shadow-none"></div>
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-3 border-l-3 border-emerald-400 rounded-bl shadow-none"></div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-3 border-r-3 border-emerald-400 rounded-br shadow-none"></div>
 
                     {/* Animated Laser Scanning Line */}
-                    <div className="w-full h-[2.5px] bg-gradient-to-r from-transparent via-emerald-300 to-transparent shadow-[0_0_12px_#34d399] animate-pulse"></div>
+                    <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse"></div>
 
                     {/* Nhãn hướng dẫn góc dưới */}
-                    <span className="absolute -bottom-6 text-[10px] sm:text-xs font-semibold text-white/95 bg-black/75 px-3 py-1 rounded-full backdrop-blur-md shadow-lg border border-white/10 flex items-center gap-1.5">
+                    <span className="absolute -bottom-6 text-[10px] sm:text-xs font-medium text-white/95 bg-black/80 px-2.5 py-0.5 rounded backdrop-blur-md border border-white/10 flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                       Vùng quét mở rộng • Lia mã vạch vào khung
                     </span>
@@ -826,10 +828,10 @@ export const ScanOrdersPage = () => {
                 </div>
 
                 {/* Camera Controls Overlay */}
-                <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between pointer-events-auto">
+                <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between pointer-events-auto">
                   <button
                     onClick={toggleTorch}
-                    className={`p-2 rounded-full backdrop-blur-md transition-colors text-white ${
+                    className={`w-9 h-9 rounded flex items-center justify-center backdrop-blur-md transition-colors text-white border border-white/10 ${
                       torchOn ? 'bg-amber-500 text-white' : 'bg-black/60 hover:bg-black/80'
                     }`}
                     title="Bật đèn Flash"
@@ -841,7 +843,7 @@ export const ScanOrdersPage = () => {
                     onClick={() => {
                       setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
                     }}
-                    className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors"
+                    className="w-9 h-9 rounded bg-black/60 hover:bg-black/80 text-white border border-white/10 backdrop-blur-md flex items-center justify-center transition-colors"
                     title="Đổi camera trước/sau"
                   >
                     <RefreshCw size={16} />
@@ -854,7 +856,7 @@ export const ScanOrdersPage = () => {
                     <p className="text-xs font-semibold text-white mb-1">{cameraError}</p>
                     <button
                       onClick={startCamera}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold"
+                      className="px-3 py-1.5 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded text-xs font-medium"
                     >
                       Thử lại Camera
                     </button>
@@ -863,7 +865,7 @@ export const ScanOrdersPage = () => {
               </div>
             ) : (
               /* SMART OCR / SNAPSHOT VIEWPORT */
-              <div className="h-[220px] md:flex-1 md:min-h-[300px] flex flex-col justify-center items-center p-4 text-center bg-gradient-to-b from-gray-900 to-black text-white relative shrink-0">
+              <div className="h-[220px] md:flex-1 md:min-h-[300px] flex flex-col justify-center items-center p-4 text-center bg-[#0d1117] text-white relative shrink-0">
                 <input
                   type="file"
                   accept="image/*"
@@ -875,27 +877,27 @@ export const ScanOrdersPage = () => {
 
                 {isOcrProcessing ? (
                   <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-10 h-10 border-2 border-[#5865f2] border-t-transparent rounded-full animate-spin"></div>
                     <div className="text-xs font-bold text-white">{ocrStatusText}</div>
                     <div className="text-[10px] text-gray-400">Đang bóc tách đầy đủ các trường...</div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center max-w-xs space-y-2.5">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-md">
-                      <Camera size={24} />
+                  <div className="flex flex-col items-center max-w-xs space-y-3">
+                    <div className="w-10 h-10 rounded bg-indigo-50/80 dark:bg-indigo-500/10 flex items-center justify-center text-[#5865f2] border border-indigo-100/50 dark:border-indigo-500/20">
+                      <Camera size={20} strokeWidth={2.5} />
                     </div>
 
                     <div>
                       <h3 className="font-bold text-sm text-white">Chụp hoặc Tải ảnh phiếu</h3>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p className="text-[11px] text-gray-400 mt-0.5">
                         Tự nhận diện Mã vận đơn, Mã đơn, Tên SP, Loại, SL, COD, Khối lượng.
                       </p>
                     </div>
 
-                    <div className="flex flex-col w-full gap-1.5">
+                    <div className="flex flex-col w-full gap-2">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                        className="w-full h-[36px] bg-[#5865f2] hover:bg-[#4752c4] text-white rounded text-[13px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors active:scale-95 shadow-none"
                       >
                         <Camera size={15} /> Chụp ảnh phiếu ngay
                       </button>
@@ -911,22 +913,22 @@ export const ScanOrdersPage = () => {
             )}
 
             {/* MOBILE INTERACTIVE ACTION BAR (Cực kỳ tiện dụng trên iPhone XS trở lên) */}
-            <div className="md:hidden flex flex-col bg-[#131720] border-t border-gray-800 p-2.5 space-y-2">
+            <div className="md:hidden flex flex-col bg-white dark:bg-[#131720] border-t border-gray-100 dark:border-gray-800 p-2.5 space-y-2">
               {/* Row 1: Summary Counter & Quick Buttons */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-ping"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                   <div className="text-xs truncate">
-                    <span className="font-bold text-white">{totalOrdersCount} đơn</span>
-                    <span className="mx-1 text-gray-600">•</span>
-                    <span className="font-bold text-emerald-400">{formatCurrency(totalCodAmount)} đ</span>
+                    <span className="font-bold text-gray-900 dark:text-white">{totalOrdersCount} đơn</span>
+                    <span className="mx-1 text-gray-400">•</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalCodAmount)} đ</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setIsListModalOpen(true)}
-                    className="px-2 py-1.5 bg-[#1c2230] hover:bg-[#252d3f] text-[#5865f2] dark:text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                    className="h-[32px] px-2.5 bg-gray-100 dark:bg-[#1c212a] hover:bg-gray-200 dark:hover:bg-gray-700 text-[#5865f2] dark:text-indigo-300 border border-gray-200 dark:border-gray-700 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     <Eye size={13} />
                     <span>Xem ({totalOrdersCount})</span>
@@ -935,10 +937,10 @@ export const ScanOrdersPage = () => {
                   <button
                     onClick={() => setIsGoogleSheetModalOpen(true)}
                     disabled={totalOrdersCount === 0}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
+                    className={`h-[32px] px-2.5 rounded text-xs font-medium flex items-center gap-1 transition-all cursor-pointer ${
                       totalOrdersCount > 0
-                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        ? 'bg-[#5865f2] hover:bg-[#4752c4] text-white active:scale-95'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-800'
                     }`}
                     title="Đẩy lên Google Sheet"
                   >
@@ -949,10 +951,10 @@ export const ScanOrdersPage = () => {
                   <button
                     onClick={handleExportExcel}
                     disabled={totalOrdersCount === 0}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
+                    className={`h-[32px] px-2.5 rounded text-xs font-medium flex items-center gap-1 transition-all cursor-pointer ${
                       totalOrdersCount > 0
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
-                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                        ? 'bg-[#10b981] hover:bg-[#059669] text-white active:scale-95'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-800'
                     }`}
                   >
                     <FileSpreadsheet size={13} />
@@ -965,28 +967,28 @@ export const ScanOrdersPage = () => {
               {latestOrder ? (
                 <div
                   onClick={() => setIsListModalOpen(true)}
-                  className="p-2.5 bg-[#1a202c] border border-emerald-500/40 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer hover:border-emerald-400 transition-colors"
+                  className="p-2.5 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-800 rounded flex items-center justify-between gap-2.5 cursor-pointer hover:border-[#5865f2]/50 transition-colors shadow-none"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
                       <Check size={14} />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-xs text-indigo-400">
+                        <span className="font-mono font-bold text-xs text-[#5865f2] dark:text-indigo-400">
                           {latestOrder.trackingCode || latestOrder.orderCode}
                         </span>
                         {latestOrder.carrier && (
-                          <span className="text-[9px] bg-gray-800 text-gray-300 px-1 py-0.5 rounded">
+                          <span className="text-[9px] bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 py-0.5 rounded">
                             {latestOrder.carrier}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-300 line-clamp-1 leading-tight mt-0.5">
+                      <p className="text-[11px] text-gray-600 dark:text-gray-300 line-clamp-1 leading-tight mt-0.5">
                         {latestOrder.productName}
                       </p>
-                      <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
-                        <span className="font-bold text-emerald-400">{formatCurrency(latestOrder.codAmount)} đ</span>
+                      <div className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(latestOrder.codAmount)} đ</span>
                         <span>SL: {latestOrder.quantity}</span>
                         {latestOrder.weight && <span>KL: {latestOrder.weight}</span>}
                       </div>
@@ -999,7 +1001,7 @@ export const ScanOrdersPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="p-2 bg-[#161b24] border border-dashed border-gray-800 rounded-xl text-center text-[11px] text-gray-400">
+                <div className="p-2 bg-gray-50 dark:bg-[#1a1b23] border border-dashed border-gray-200 dark:border-gray-800 rounded text-center text-[11px] text-gray-500 dark:text-gray-400">
                   Lia camera vào mã vạch hoặc chụp phiếu để bắt đầu quét hàng loạt.
                 </div>
               )}
@@ -1019,7 +1021,7 @@ export const ScanOrdersPage = () => {
                 </div>
                 <button
                   onClick={loadHistory}
-                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-medium rounded-lg text-gray-700 dark:text-gray-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-[32px] px-3 bg-gray-100 dark:bg-[#1c212a] border border-gray-200 dark:border-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-medium rounded text-gray-700 dark:text-gray-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw size={12} /> Làm mới
                 </button>
@@ -1036,7 +1038,7 @@ export const ScanOrdersPage = () => {
                   {scannedBatchesList.map(batch => (
                     <div
                       key={batch.id}
-                      className="p-4 bg-white dark:bg-[#1a202c] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex items-center justify-between gap-4"
+                      className="p-4 bg-white dark:bg-[#1a1b23] border border-gray-100 dark:border-gray-800 rounded shadow-none flex items-center justify-between gap-4 hover:border-gray-300 dark:hover:border-gray-700 transition-all"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -1069,7 +1071,7 @@ export const ScanOrdersPage = () => {
                               showToast('success', 'Đã xóa đợt quét');
                             }
                           }}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                          className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                           title="Xóa đợt"
                         >
                           <Trash2 size={16} />
@@ -1084,7 +1086,7 @@ export const ScanOrdersPage = () => {
             /* DANH SÁCH ĐƠN HÀNG TRÊN DESKTOP */
             <div className="hidden md:flex flex-1 flex-col min-h-0">
               {/* Batch Action Bar */}
-              <div className="p-3 md:px-6 bg-white dark:bg-[#151a24] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+              <div className="p-3 md:px-6 bg-[#fbfbfa] dark:bg-[#131720] border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="text-xs">
                     <span className="text-gray-500 dark:text-gray-400">Danh sách chờ xuất: </span>
@@ -1098,7 +1100,7 @@ export const ScanOrdersPage = () => {
                   {totalOrdersCount > 0 && (
                     <button
                       onClick={handleClearAll}
-                      className="px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1"
+                      className="h-[32px] px-2.5 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded font-medium transition-colors cursor-pointer flex items-center gap-1"
                       title="Xóa danh sách hiện tại"
                     >
                       <Trash2 size={13} /> Làm mới
@@ -1111,8 +1113,8 @@ export const ScanOrdersPage = () => {
               <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-2.5 custom-scrollbar">
                 {scannedOrders.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8 text-gray-400">
-                    <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800/60 flex items-center justify-center text-gray-400 mb-3">
-                      <Barcode size={32} />
+                    <div className="w-14 h-14 rounded bg-gray-100 dark:bg-gray-800/60 flex items-center justify-center text-gray-400 mb-3 border border-gray-200/50 dark:border-gray-700/50">
+                      <Barcode size={28} />
                     </div>
                     <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300">Chưa có đơn hàng nào</h3>
                     <p className="text-xs text-gray-500 mt-1 max-w-xs">
@@ -1123,19 +1125,19 @@ export const ScanOrdersPage = () => {
                   scannedOrders.map((item, index) => (
                     <div
                       key={item.id}
-                      className="p-3.5 bg-white dark:bg-[#1a202c] border border-gray-200/80 dark:border-gray-800 rounded-xl shadow-sm hover:border-indigo-400/50 transition-all flex flex-col gap-2 relative group"
+                      className="p-3.5 bg-white dark:bg-[#1a1b23] border border-gray-100 dark:border-gray-800 rounded shadow-none hover:border-[#5865f2]/40 transition-all flex flex-col gap-2 relative group"
                     >
                       {/* Top Row: STT, Mã vận đơn, Carrier, Actions */}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] flex items-center justify-center">
+                          <span className="w-5 h-5 rounded bg-indigo-50/80 dark:bg-indigo-500/10 text-[#5865f2] dark:text-indigo-400 font-bold text-[11px] flex items-center justify-center border border-indigo-100/50 dark:border-indigo-500/20">
                             {scannedOrders.length - index}
                           </span>
-                          <span className="font-mono font-bold text-sm text-indigo-600 dark:text-indigo-400">
+                          <span className="font-mono font-bold text-sm text-[#5865f2] dark:text-indigo-400">
                             {item.trackingCode || item.orderCode || 'CHƯA CÓ MÃ'}
                           </span>
                           {item.carrier && (
-                            <span className="text-[10px] font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
                               {item.carrier}
                             </span>
                           )}
@@ -1144,14 +1146,14 @@ export const ScanOrdersPage = () => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setEditingOrder(item)}
-                            className="p-1.5 text-gray-400 hover:text-indigo-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            className="p-1.5 text-gray-400 hover:text-[#5865f2] rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             title="Sửa thông tin"
                           >
                             <Edit3 size={14} />
                           </button>
                           <button
                             onClick={() => handleDeleteOrder(item.id)}
-                            className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            className="p-1.5 text-gray-400 hover:text-rose-500 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             title="Xóa đơn"
                           >
                             <Trash2 size={14} />
@@ -1172,7 +1174,7 @@ export const ScanOrdersPage = () => {
                       </div>
 
                       {/* Bottom Row: COD, SL, Date, Weight */}
-                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800/80 text-[11px] text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 text-[11px] text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                             {formatCurrency(item.codAmount)} đ
@@ -1191,7 +1193,7 @@ export const ScanOrdersPage = () => {
               </div>
 
               {/* STICKY BOTTOM CONFIRM & EXPORT BAR TRÊN DESKTOP */}
-              <div className="p-3 md:p-4 bg-white dark:bg-[#151a24] border-t border-gray-200 dark:border-gray-800 shrink-0 flex items-center gap-3 shadow-lg">
+              <div className="p-3.5 md:p-4 bg-white dark:bg-[#131720] border-t border-gray-100 dark:border-gray-800 shrink-0 flex items-center justify-between gap-3 shadow-none">
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
                     Tổng cộng {totalOrdersCount} đơn hàng
@@ -1205,27 +1207,27 @@ export const ScanOrdersPage = () => {
                   <button
                     onClick={() => setIsGoogleSheetModalOpen(true)}
                     disabled={totalOrdersCount === 0}
-                    className={`px-4 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer ${
+                    className={`h-[36px] px-4 rounded font-medium text-[13px] flex items-center justify-center gap-1.5 shadow-none transition-all cursor-pointer ${
                       totalOrdersCount > 0
-                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white active:scale-95'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+                        ? 'bg-[#5865f2] hover:bg-[#4752c4] text-white active:scale-95'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-800'
                     }`}
                     title="Đẩy lên Google Sheet"
                   >
-                    <FileSpreadsheet size={16} />
+                    <FileSpreadsheet size={15} />
                     <span>Đẩy Google Sheet</span>
                   </button>
 
                   <button
                     onClick={handleExportExcel}
                     disabled={totalOrdersCount === 0}
-                    className={`px-5 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer ${
+                    className={`h-[36px] px-4 rounded font-medium text-[13px] flex items-center justify-center gap-1.5 shadow-none transition-all cursor-pointer ${
                       totalOrdersCount > 0
-                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/25 active:scale-95'
-                        : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed shadow-none'
+                        ? 'bg-[#10b981] hover:bg-[#059669] text-white active:scale-95'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-800'
                     }`}
                   >
-                    <FileSpreadsheet size={16} />
+                    <FileSpreadsheet size={15} />
                     <span>Xác nhận & Xuất Excel</span>
                   </button>
                 </div>

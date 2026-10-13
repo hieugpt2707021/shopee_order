@@ -48,22 +48,22 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#1a202c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div className="relative w-full max-w-lg bg-[#fbfbfa] dark:bg-[#131720] rounded shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-[#151a24]">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-[#fbfbfa] dark:bg-[#131720]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
-              <Package size={18} />
+            <div className="w-10 h-10 rounded bg-indigo-50/80 dark:bg-indigo-500/10 text-[#5865f2] border border-indigo-100/50 dark:border-indigo-500/20 flex items-center justify-center font-bold">
+              <Package size={20} strokeWidth={2.5} />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white text-base">Chỉnh sửa thông tin đơn</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white text-base">Chỉnh sửa thông tin đơn</h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">Cập nhật chi tiết đơn hàng đã quét</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -78,7 +78,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.trackingCode}
                 onChange={(e) => setFormData({ ...formData, trackingCode: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="GYM..."
               />
             </div>
@@ -88,7 +88,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.orderCode}
                 onChange={(e) => setFormData({ ...formData, orderCode: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="2610..."
               />
             </div>
@@ -100,7 +100,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
               rows={2}
               value={formData.productName}
               onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-              className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
               placeholder="Tên sản phẩm..."
             />
           </div>
@@ -112,7 +112,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.variation}
                 onChange={(e) => setFormData({ ...formData, variation: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="Màu, size, vị..."
               />
             </div>
@@ -123,7 +123,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 min="1"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none font-bold"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all font-bold"
               />
             </div>
           </div>
@@ -135,7 +135,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="number"
                 value={formData.codAmount}
                 onChange={(e) => setFormData({ ...formData, codAmount: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-emerald-600 dark:text-emerald-400 font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-emerald-600 dark:text-emerald-400 font-bold focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="2744000"
               />
             </div>
@@ -145,7 +145,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.weight}
                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="27,000 g"
               />
             </div>
@@ -158,7 +158,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.orderDate}
                 onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="11-10-2026 22:02"
               />
             </div>
@@ -168,7 +168,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.carrier}
                 onChange={(e) => setFormData({ ...formData, carrier: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="GHN, SPX..."
               />
             </div>
@@ -181,7 +181,7 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.recipient}
                 onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="Tên khách hàng"
               />
             </div>
@@ -191,23 +191,23 @@ export const OrderEditModal = ({ isOpen, onClose, order, onSave }) => {
                 type="text"
                 value={formData.recipientAddress}
                 onChange={(e) => setFormData({ ...formData, recipientAddress: e.target.value })}
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#12161f] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#1a1b23] border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-[2px] focus:ring-[#5865f2]/30 transition-all"
                 placeholder="Địa chỉ giao hàng"
               />
             </div>
           </div>
 
-          <div className="pt-3 flex gap-2 justify-end">
+          <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex gap-2 justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              className="h-[36px] px-4 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              className="h-[36px] px-4 text-xs font-medium bg-[#5865f2] hover:bg-[#4752c4] text-white rounded flex items-center gap-1.5 shadow-none transition-colors cursor-pointer"
             >
               <Check size={14} /> Lưu thay đổi
             </button>
