@@ -14,25 +14,56 @@ export const APPS_SCRIPT_TEMPLATE = `function doPost(e) {
     var sheets = ss.getSheets();
     var sheet = sheets.find(function(s) { return s.getSheetId() == 863388700; }) || ss.getActiveSheet();
     
-    // Tạo dòng tiêu đề nếu trang tính còn trống
+    // Nếu trước đó có cột F "Tổng đơn trong ngày" hoặc lỗi #ERROR!, tự động xóa bỏ cột đó
+    if (sheet.getLastColumn() >= 6) {
+      var headerVal = sheet.getRange(1, 6).getValue();
+      if (headerVal && (headerVal.toString().indexOf("Tổng đơn") !== -1 || headerVal.toString().indexOf("#ERROR") !== -1)) {
+        sheet.deleteColumn(6);
+      }
+    }
+    
+    // Tạo dòng tiêu đề chuẩn 5 cột nếu trang tính còn trống
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["STT", "Mã vận đơn", "Mã đơn hàng", "Thời gian quét", "Ngày quét", "Tổng đơn trong ngày"]);
-      sheet.getRange(1, 1, 1, 6).setFontWeight("bold").setBackground("#e0e7ff").setHorizontalAlignment("center");
+      sheet.appendRow(["STT", "Mã vận đơn", "Mã đơn hàng", "Thời gian quét", "Ngày quét"]);
+      sheet.getRange(1, 1, 1, 5).setFontWeight("bold").setBackground("#e0e7ff").setHorizontalAlignment("center");
       sheet.setFrozenRows(1);
     }
     
-    var orders = data.orders || [];
     var lastRow = sheet.getLastRow();
-    var startStt = lastRow >= 2 ? lastRow - 1 : 0;
     
+    // Lấy danh sách các mã đã có trên Sheet để LỌC TRÙNG TUYỆT ĐỐI
+    var existingCodes = {};
+    if (lastRow >= 2) {
+      var existingData = sheet.getRange(2, 2, lastRow - 1, 2).getValues();
+      for (var r = 0; r < existingData.length; r++) {
+        var exTrack = existingData[r][0] ? existingData[r][0].toString().trim().toUpperCase().replace(/[\s-]/g, '') : '';
+        var exOrder = existingData[r][1] ? existingData[r][1].toString().trim().toUpperCase().replace(/[\s-]/g, '') : '';
+        if (exTrack) existingCodes[exTrack] = true;
+        if (exOrder) existingCodes[exOrder] = true;
+      }
+    }
+    
+    var orders = data.orders || [];
     var rows = [];
+    var currentStt = lastRow >= 2 ? lastRow - 1 : 0;
     var now = new Date();
     var defaultDate = Utilities.formatDate(now, "Asia/Ho_Chi_Minh", "dd/MM/yyyy");
     var defaultTime = Utilities.formatDate(now, "Asia/Ho_Chi_Minh", "HH:mm:ss");
 
     for (var i = 0; i < orders.length; i++) {
-      var rowNum = lastRow + i + 1;
       var item = orders[i];
+      var normTrack = item.trackingCode ? item.trackingCode.toString().trim().toUpperCase().replace(/[\s-]/g, '') : '';
+      var normOrder = item.orderCode ? item.orderCode.toString().trim().toUpperCase().replace(/[\s-]/g, '') : '';
+
+      // TỰ ĐỘNG BỎ QUA NẾU MÃ VẬN ĐƠN HOẶC MÃ ĐƠN HÀNG ĐÃ TỒN TẠI TRÊN SHEET
+      if ((normTrack && existingCodes[normTrack]) || (normOrder && existingCodes[normOrder])) {
+        continue;
+      }
+
+      if (normTrack) existingCodes[normTrack] = true;
+      if (normOrder) existingCodes[normOrder] = true;
+
+      currentStt++;
       var timePart = item.scannedTime || defaultTime;
       var datePart = item.scannedDate || defaultDate;
 
@@ -45,17 +76,16 @@ export const APPS_SCRIPT_TEMPLATE = `function doPost(e) {
       }
 
       rows.push([
-        startStt + i + 1,
+        currentStt,
         item.trackingCode || "",
         item.orderCode || "",
         timePart,
-        datePart,
-        '=COUNTIF(E:E, E' + rowNum + ')' // Tự động đếm tổng số đơn của ngày hôm đó!
+        datePart
       ]);
     }
     
     if (rows.length > 0) {
-      sheet.getRange(lastRow + 1, 1, rows.length, 6).setValues(rows);
+      sheet.getRange(lastRow + 1, 1, rows.length, 5).setValues(rows);
     }
     
     return ContentService.createTextOutput(JSON.stringify({
@@ -113,9 +143,9 @@ export function copyOrdersToClipboard(orders) {
   const defaultDate = now.toLocaleDateString('vi-VN');
   const defaultTime = now.toLocaleTimeString('vi-VN', { hour12: false });
 
-  // Tiêu đề bảng
+  // Tiêu đề bảng - Chỉ giữ 5 cột sạch đẹp theo yêu cầu
   const rows = [
-    ['STT', 'Mã vận đơn', 'Mã đơn hàng', 'Thời gian quét', 'Ngày quét', 'Tổng đơn trong ngày'].join('\t')
+    ['STT', 'Mã vận đơn', 'Mã đơn hàng', 'Thời gian quét', 'Ngày quét'].join('\t')
   ];
 
   orders.forEach((o, index) => {
@@ -130,15 +160,12 @@ export function copyOrdersToClipboard(orders) {
       }
     }
 
-    const rowNum = index + 2;
-
     rows.push([
       index + 1,
       o.trackingCode || '',
       o.orderCode || '',
       timeStr,
-      dateStr,
-      `=COUNTIF(E:E, E${rowNum})`
+      dateStr
     ].join('\t'));
   });
 

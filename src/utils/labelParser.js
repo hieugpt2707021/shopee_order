@@ -354,7 +354,6 @@ export function exportScannedOrdersToExcel(ordersList, fileName = '') {
       'Mã đơn hàng': item.orderCode || '',
       'Thời gian quét': timeStr,
       'Ngày quét': dateStr,
-      'Tổng đơn trong ngày': ordersList.length,
       'Tên sản phẩm': item.productName || '',
       'Phân loại hàng': item.variation || '',
       'Số lượng': item.quantity || 1,
@@ -376,7 +375,6 @@ export function exportScannedOrdersToExcel(ordersList, fileName = '') {
     { wch: 22 }, // Mã đơn hàng
     { wch: 16 }, // Thời gian quét
     { wch: 14 }, // Ngày quét
-    { wch: 18 }, // Tổng đơn trong ngày
     { wch: 40 }, // Tên SP
     { wch: 20 }, // Phân loại
     { wch: 10 }, // SL

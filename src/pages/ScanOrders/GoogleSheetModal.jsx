@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, CloudUpload, Copy, Check, ExternalLink, HelpCircle,
-  FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle
+  FileSpreadsheet, Sparkles, CheckCircle2, AlertCircle, RotateCcw
 } from 'lucide-react';
 import {
   pushOrdersToGoogleSheet,
@@ -60,7 +60,7 @@ export const GoogleSheetModal = ({
         type: 'success',
         text: `Đã gửi thành công ${scannedOrders.length} đơn lên Google Sheet!`
       });
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(scannedOrders);
     } catch (err) {
       setStatusMsg({
         type: 'error',
@@ -105,7 +105,7 @@ export const GoogleSheetModal = ({
                 Đẩy lên Google Sheet
               </h3>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Lưu STT, Mã vận đơn, Mã đơn, Thời gian & Tổng đơn
+                Lưu STT, Mã vận đơn, Mã đơn hàng, Thời gian & Ngày quét
               </p>
             </div>
           </div>
@@ -169,17 +169,31 @@ export const GoogleSheetModal = ({
                   Cách 1: Sao chép bảng & Dán trực tiếp vào Sheet
                 </span>
                 <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 block">
-                  Không cần cài đặt gì. Bấm nút dưới và mở Sheet dán vào ô A1.
+                  Dán vào ô A1. Chỉ lưu 5 cột chuẩn (STT, Mã vận đơn, Mã đơn, Giờ, Ngày).
                 </span>
               </div>
             </div>
-            <button
-              onClick={handleCopyTable}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
-            >
-              {copiedTable ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copiedTable ? 'Đã sao chép! Mở Sheet và Dán' : `Sao chép ${scannedOrders.length} đơn để dán vào Sheet`}</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCopyTable}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                {copiedTable ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedTable ? 'Đã sao chép!' : `Sao chép ${scannedOrders.length} đơn`}</span>
+              </button>
+              {scannedOrders.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (onSuccess) onSuccess(scannedOrders);
+                  }}
+                  className="py-2.5 px-3 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-bold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  title="Đã dán xong -> Lưu vào lịch sử và làm mới danh sách để quét đợt tiếp theo"
+                >
+                  <RotateCcw size={13} />
+                  <span>Lưu & Làm mới</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Primary Action 2: Direct Push via Apps Script Webhook */}

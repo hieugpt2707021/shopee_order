@@ -15,6 +15,7 @@ import {
 } from '../../utils/labelParser.js';
 import { formatCurrency } from '../../utils/index.js';
 import { saveScannedBatch, getScannedBatches, deleteScannedBatch } from '../../utils/storage.js';
+import { db } from '../../lib/db';
 import { OrderEditModal } from './OrderEditModal.jsx';
 import { ScannerSettingsModal } from './ScannerSettingsModal.jsx';
 import { ScannedOrdersListModal } from './ScannedOrdersListModal.jsx';
@@ -107,6 +108,7 @@ export const ScanOrdersPage = () => {
   const lastScannedTimeRef = useRef(0);
   const toastTimeoutRef = useRef(null);
   const scannedCodesSetRef = useRef(rebuildCodesSet(scannedOrders));
+  const historicalPushedCodesRef = useRef(new Set()); // Lưu toàn bộ mã các đợt đã lưu / đẩy lên Sheet
   const scannedOrdersRef = useRef(scannedOrders);
   const lastDuplicateAlertMapRef = useRef(new Map());
   const onBarcodeDetectedRef = useRef(null);
@@ -127,11 +129,33 @@ export const ScanOrdersPage = () => {
     soundEffects.setMuted(!settings.soundEnabled);
   }, [settings.soundEnabled]);
 
-  // Tải lịch sử đợt quét khi chuyển sang tab history
+  // Tải lịch sử đợt quét & đồng bộ tập mã đã từng quét để chống trùng lặp xuyên suốt các đợt
   const loadHistory = useCallback(async () => {
-    const list = await getScannedBatches();
-    setScannedBatchesList(list || []);
+    try {
+      const list = await getScannedBatches();
+      setScannedBatchesList(list || []);
+
+      // Lấy danh sách toàn bộ các mã đã từng quét trong lịch sử từ DB
+      const allHistOrders = await db.scannedOrders.toArray();
+      const histSet = new Set();
+      allHistOrders.forEach(o => {
+        const t = normalizeOrderCode(o.trackingCode);
+        const or = normalizeOrderCode(o.orderCode);
+        const r = normalizeOrderCode(o.rawCode);
+        if (t) histSet.add(t);
+        if (or) histSet.add(or);
+        if (r) histSet.add(r);
+      });
+      historicalPushedCodesRef.current = histSet;
+    } catch (err) {
+      console.warn('Lỗi tải lịch sử đợt quét:', err);
+    }
   }, []);
+
+  // Tải lịch sử ngay khi khởi động trang
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   useEffect(() => {
     if (activeTab === 'history') {
@@ -252,8 +276,11 @@ export const ScanOrdersPage = () => {
 
     const now = Date.now();
 
-    // 1. KIỂM TRA TRÙNG LẶP ĐỒNG BỘ QUA SET REF (Triệt để 100%, không bị ảnh hưởng bởi stale closure)
-    if (scannedCodesSetRef.current.has(norm)) {
+    // 1. KIỂM TRA TRÙNG LẶP ĐỒNG BỘ QUA SET REF & LỊCH SỬ ĐÃ LƯU
+    const isInCurrentBatch = scannedCodesSetRef.current.has(norm);
+    const isInHistory = historicalPushedCodesRef.current.has(norm);
+
+    if (isInCurrentBatch || isInHistory) {
       const lastAlert = lastDuplicateAlertMapRef.current.get(norm) || 0;
       if (now - lastAlert > 2000) {
         lastDuplicateAlertMapRef.current.set(norm, now);
@@ -262,7 +289,9 @@ export const ScanOrdersPage = () => {
         showToast(
           'warning',
           '⚠️ Bỏ qua đơn trùng lặp!',
-          `Mã [${raw}] đã có trong danh sách đơn đã quét.`
+          isInHistory
+            ? `Mã [${raw}] đã có trong đợt quét đã lưu/đẩy lên Sheet trước đó.`
+            : `Mã [${raw}] đã có trong danh sách đợt quét hiện tại.`
         );
       }
       return; // BỎ QUA NGAY LẬP TỨC
@@ -282,11 +311,13 @@ export const ScanOrdersPage = () => {
     const normDbOrder = dbMatch ? normalizeOrderCode(dbMatch.orderCode) : '';
 
     // 4. Kiểm tra trùng lặp với thông tin từ Database (Cả mã đơn và mã vận đơn)
-    if (
-      (normDbTrack && scannedCodesSetRef.current.has(normDbTrack)) ||
-      (normDbOrder && scannedCodesSetRef.current.has(normDbOrder))
-    ) {
-      const matched = (normDbTrack && scannedCodesSetRef.current.has(normDbTrack))
+    const isDbInCurrent = (normDbTrack && scannedCodesSetRef.current.has(normDbTrack)) ||
+                          (normDbOrder && scannedCodesSetRef.current.has(normDbOrder));
+    const isDbInHist = (normDbTrack && historicalPushedCodesRef.current.has(normDbTrack)) ||
+                       (normDbOrder && historicalPushedCodesRef.current.has(normDbOrder));
+
+    if (isDbInCurrent || isDbInHist) {
+      const matched = (normDbTrack && (scannedCodesSetRef.current.has(normDbTrack) || historicalPushedCodesRef.current.has(normDbTrack)))
         ? dbMatch.trackingCode
         : dbMatch.orderCode;
 
@@ -298,7 +329,9 @@ export const ScanOrdersPage = () => {
         showToast(
           'warning',
           '⚠️ Bỏ qua đơn trùng lặp!',
-          `Mã [${matched}] đã có trong danh sách đơn đã quét.`
+          isDbInHist
+            ? `Mã [${matched}] đã có trong đợt quét lưu/đẩy lên Sheet trước đó.`
+            : `Mã [${matched}] đã có trong danh sách đợt quét hiện tại.`
         );
       }
       return; // BỎ QUA NGAY LẬP TỨC
@@ -415,11 +448,13 @@ export const ScanOrdersPage = () => {
         const normOcrTrack = normalizeOrderCode(parsedResult.trackingCode);
         const normOcrOrder = normalizeOrderCode(parsedResult.orderCode);
 
-        if (
-          (normOcrTrack && scannedCodesSetRef.current.has(normOcrTrack)) ||
-          (normOcrOrder && scannedCodesSetRef.current.has(normOcrOrder))
-        ) {
-          const matched = (normOcrTrack && scannedCodesSetRef.current.has(normOcrTrack))
+        const isOcrInCurrent = (normOcrTrack && scannedCodesSetRef.current.has(normOcrTrack)) ||
+                               (normOcrOrder && scannedCodesSetRef.current.has(normOcrOrder));
+        const isOcrInHist = (normOcrTrack && historicalPushedCodesRef.current.has(normOcrTrack)) ||
+                            (normOcrOrder && historicalPushedCodesRef.current.has(normOcrOrder));
+
+        if (isOcrInCurrent || isOcrInHist) {
+          const matched = (normOcrTrack && (scannedCodesSetRef.current.has(normOcrTrack) || historicalPushedCodesRef.current.has(normOcrTrack)))
             ? parsedResult.trackingCode
             : parsedResult.orderCode;
 
@@ -428,7 +463,9 @@ export const ScanOrdersPage = () => {
           showToast(
             'warning',
             '⚠️ Bỏ qua đơn trùng lặp!',
-            `Mã [${matched}] đã có trong danh sách đơn đã quét.`
+            isOcrInHist
+              ? `Mã [${matched}] đã có trong đợt quét lưu/đẩy lên Sheet trước đó.`
+              : `Mã [${matched}] đã có trong danh sách đợt này.`
           );
           setIsOcrProcessing(false);
           return; // BỎ QUA NGAY LẬP TỨC
@@ -502,7 +539,7 @@ export const ScanOrdersPage = () => {
     }
   };
 
-  // Xuất file Excel và lưu đợt quét
+  // Xuất file Excel và lưu đợt quét vào lịch sử, sau đó làm mới danh sách
   const handleExportExcel = async () => {
     if (scannedOrders.length === 0) {
       showToast('warning', 'Chưa có đơn hàng nào để xuất Excel');
@@ -514,15 +551,20 @@ export const ScanOrdersPage = () => {
       exportScannedOrdersToExcel(scannedOrders, fileName);
 
       // Tự động lưu vào lịch sử đợt quét IndexedDB
-      const batchId = `batch_${Date.now()}`;
+      const batchId = `excel_${Date.now()}`;
       const totalAmount = scannedOrders.reduce((sum, o) => sum + (o.codAmount || 0), 0);
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
+      const dateStr = now.toLocaleDateString('vi-VN');
+
       const batchInfo = {
         id: batchId,
-        name: `Đợt quét ${new Date().toLocaleDateString('vi-VN')} (${scannedOrders.length} đơn)`,
-        createdAt: new Date().toISOString(),
+        name: `Xuất Excel (${scannedOrders.length} đơn) - ${timeStr} ${dateStr}`,
+        createdAt: now.toISOString(),
         totalOrders: scannedOrders.length,
         totalAmount: totalAmount,
-        fileName: fileName
+        fileName: fileName,
+        type: 'excel'
       };
 
       const ordersWithBatch = scannedOrders.map(o => ({
@@ -531,11 +573,83 @@ export const ScanOrdersPage = () => {
       }));
 
       await saveScannedBatch(batchInfo, ordersWithBatch);
+      await loadHistory();
 
-      showToast('success', 'Xuất Excel thành công!', `Đã tải về máy: ${fileName}`);
+      // Lưu mã vào historicalPushedCodesRef để bảo vệ chống trùng
+      scannedOrders.forEach(o => {
+        const t = normalizeOrderCode(o.trackingCode);
+        const or = normalizeOrderCode(o.orderCode);
+        const r = normalizeOrderCode(o.rawCode);
+        if (t) historicalPushedCodesRef.current.add(t);
+        if (or) historicalPushedCodesRef.current.add(or);
+        if (r) historicalPushedCodesRef.current.add(r);
+      });
+
+      // Làm mới danh sách quét về 0 để sẵn sàng cho đợt tiếp theo
+      setScannedOrders([]);
+      localStorage.removeItem('shopee_current_batch');
+      lastDuplicateAlertMapRef.current.clear();
+
+      showToast('success', 'Xuất Excel thành công!', `Đã lưu vào lịch sử và làm mới danh sách quét.`);
     } catch (err) {
       console.error('Lỗi xuất Excel:', err);
       showToast('error', 'Lỗi xuất Excel:', err.message);
+    }
+  };
+
+  // Lưu đợt quét lên Google Sheet vào lịch sử và làm mới danh sách quét (tránh cộng dồn đơn)
+  const handlePushSheetSuccess = async (pushedList = scannedOrders) => {
+    if (!pushedList || pushedList.length === 0) return;
+
+    try {
+      const batchId = `sheet_${Date.now()}`;
+      const totalAmount = pushedList.reduce((sum, o) => sum + (o.codAmount || 0), 0);
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
+      const dateStr = now.toLocaleDateString('vi-VN');
+
+      const batchInfo = {
+        id: batchId,
+        name: `Đẩy Google Sheet (${pushedList.length} đơn) - ${timeStr} ${dateStr}`,
+        createdAt: now.toISOString(),
+        totalOrders: pushedList.length,
+        totalAmount: totalAmount,
+        type: 'google_sheet'
+      };
+
+      const ordersWithBatch = pushedList.map(o => ({
+        ...o,
+        batchId: batchId
+      }));
+
+      // Lưu vào IndexedDB
+      await saveScannedBatch(batchInfo, ordersWithBatch);
+      await loadHistory();
+
+      // Lưu mã vào historicalPushedCodesRef
+      pushedList.forEach(o => {
+        const t = normalizeOrderCode(o.trackingCode);
+        const or = normalizeOrderCode(o.orderCode);
+        const r = normalizeOrderCode(o.rawCode);
+        if (t) historicalPushedCodesRef.current.add(t);
+        if (or) historicalPushedCodesRef.current.add(or);
+        if (r) historicalPushedCodesRef.current.add(r);
+      });
+
+      // Làm mới danh sách quét hiện tại về 0
+      setScannedOrders([]);
+      localStorage.removeItem('shopee_current_batch');
+      lastDuplicateAlertMapRef.current.clear();
+
+      setIsGoogleSheetModalOpen(false);
+      showToast(
+        'success',
+        `✅ Đã lưu ${pushedList.length} đơn vào Lịch sử!`,
+        'Danh sách quét đã được làm mới về 0 đơn sẵn sàng cho lượt tiếp theo.'
+      );
+    } catch (err) {
+      console.error('Lỗi khi lưu đợt đẩy Google Sheet:', err);
+      showToast('error', 'Lỗi lưu lịch sử:', err.message);
     }
   };
 
@@ -915,7 +1029,7 @@ export const ScanOrdersPage = () => {
                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-400">
                   <Layers size={40} className="mb-2 opacity-30" />
                   <p className="text-sm font-semibold">Chưa có đợt quét nào được lưu</p>
-                  <p className="text-xs text-gray-500 mt-1">Khi bạn bấm "Xác nhận & Xuất Excel", đợt quét sẽ được tự động lưu tại đây.</p>
+                  <p className="text-xs text-gray-500 mt-1">Khi bạn bấm "Đẩy Google Sheet" hoặc "Xuất Excel", đợt quét sẽ được tự động lưu tại đây.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -925,7 +1039,18 @@ export const ScanOrdersPage = () => {
                       className="p-4 bg-white dark:bg-[#1a202c] border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm flex items-center justify-between gap-4"
                     >
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{batch.name}</h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          {batch.type === 'google_sheet' ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 shrink-0">
+                              Google Sheet
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-800 shrink-0">
+                              Excel
+                            </span>
+                          )}
+                          <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{batch.name}</h4>
+                        </div>
                         <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
                           <span>{batch.totalOrders} đơn hàng</span>
                           <span>•</span>
@@ -1133,9 +1258,7 @@ export const ScanOrdersPage = () => {
         isOpen={isGoogleSheetModalOpen}
         onClose={() => setIsGoogleSheetModalOpen(false)}
         scannedOrders={scannedOrders}
-        onSuccess={() => {
-          showToast('success', 'Đã đồng bộ đơn hàng lên Google Sheet!');
-        }}
+        onSuccess={handlePushSheetSuccess}
       />
 
       {/* Edit Order Modal */}
