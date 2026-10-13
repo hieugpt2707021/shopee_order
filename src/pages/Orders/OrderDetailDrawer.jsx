@@ -225,7 +225,7 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                                   <Truck size={14} className="text-[#3b82f6]" />
                                   <span className="text-[11px] font-medium text-gray-400">Phí vận chuyển</span>
                                 </div>
-                                <span className="text-lg font-semibold text-white">{formatCurrency(shippingFee)} đ</span>
+                                <span className="text-lg font-semibold text-white">{order.feeDetails?.phiShipTraHang > 0 ? `- ${formatCurrency(order.feeDetails.phiShipTraHang)}` : '0'} đ</span>
                               </div>
 
                               {/* Phí Shopee */}
@@ -237,13 +237,13 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                                 <span className="text-lg font-semibold text-[#ef4444]">- {formatCurrency(order.shopeeFee)} đ</span>
                               </div>
 
-                              {/* Lợi nhuận */}
+                              {/* Lợi nhuận / Doanh thu */}
                               <div className="bg-[#10b981]/5 border border-[#10b981]/20 rounded p-4 flex flex-col justify-center items-center text-center group shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                                 <div className="flex items-center gap-1.5 mb-1.5">
                                   <TrendingUp size={14} className="text-[#10b981]" />
                                   <span className="text-[11px] font-medium text-gray-300">Doanh thu</span>
                                 </div>
-                                <span className="text-lg font-semibold text-[#10b981] mb-1.5">{formatCurrency(order.profit)} đ</span>
+                                <span className="text-lg font-semibold text-[#10b981] mb-1.5">{formatCurrency(order.doanhThu != null ? order.doanhThu : order.profit)} đ</span>
                                 <span className="text-[9px] font-medium bg-[#10b981]/20 text-[#10b981] px-1.5 py-0.5 rounded">100%</span>
                               </div>
                             </div>
@@ -262,19 +262,15 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                                 
                                 <div className="flex justify-between items-center text-[13px] mt-2">
                                   <span className="font-semibold text-gray-300">Tổng phí vận chuyển ước tính</span>
-                                  <span className="font-medium text-white">đ{formatCurrency(order.feeDetails.tongPhiVanChuyen)}</span>
+                                  <span className={order.feeDetails.tongPhiVanChuyen < 0 ? "font-medium text-[#ef4444]" : "font-medium text-white"}>{order.feeDetails.tongPhiVanChuyen < 0 ? `-đ${formatCurrency(Math.abs(order.feeDetails.tongPhiVanChuyen))}` : 'đ0'}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
                                   <span>Phí vận chuyển Người mua trả</span>
-                                  <span>đ{formatCurrency(order.feeDetails.phiVanChuyenNguoiMuaTra)}</span>
+                                  <span>đ0</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
                                   <span>Phí vận chuyển ước tính</span>
-                                  <span>-đ{formatCurrency(order.feeDetails.phiVanChuyenUocTinh)}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
-                                  <span>Phí vận chuyển được trợ giá từ Shopee ước tính</span>
-                                  <span>đ{formatCurrency(order.feeDetails.phiVanChuyenTroGiaShopee)}</span>
+                                  <span>đ0</span>
                                 </div>
 
                                 <div className="flex justify-between items-center text-[13px] mt-2">
@@ -285,10 +281,12 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
                                   <span>Phí cố định <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
                                   <span>{order.feeDetails.phiCoDinh === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiCoDinh)}`}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
-                                  <span>Phí dịch vụ PiShip</span>
-                                  <span>{order.feeDetails.phiPiShip === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiPiShip)}`}</span>
-                                </div>
+                                {order.feeDetails.phiShipTraHang > 0 && (
+                                  <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
+                                    <span>Phí vận chuyển trả hàng</span>
+                                    <span>-đ{formatCurrency(order.feeDetails.phiShipTraHang)}</span>
+                                  </div>
+                                )}
                                 <div className="flex justify-between items-center text-[12px] pl-4 text-gray-400">
                                   <span>Phí Dịch Vụ <span className="text-[9px] bg-gray-800/80 px-1.5 py-[1px] rounded-full ml-1 border border-gray-700/50">?</span></span>
                                   <span>{order.feeDetails.phiDichVu === 0 ? 'đ0' : `-đ${formatCurrency(order.feeDetails.phiDichVu)}`}</span>
@@ -318,7 +316,7 @@ export const OrderDetailDrawer = ({ isOpen, onClose, order }) => {
 
                                 <div className="flex justify-between items-center text-[15px] mt-3 pt-4 border-t border-gray-800/80">
                                   <span className="font-bold text-gray-200">Doanh thu đơn hàng ước tính <span className="text-[10px] bg-gray-800/80 px-1.5 py-[2px] rounded-full ml-1 text-gray-400 border border-gray-700/50 cursor-pointer hover:bg-gray-700 transition-colors">?</span></span>
-                                  <span className="font-bold text-[#f53d2d] text-[18px]">đ{formatCurrency(order.profit)}</span>
+                                   <span className="font-bold text-[#f53d2d] text-[18px]">đ{formatCurrency(order.doanhThu != null ? order.doanhThu : order.profit)}</span>
                                 </div>
                               </div>
                             )}

@@ -7,6 +7,7 @@ import { OrdersPage } from './pages/Orders/page';
 import { ProductsPage } from './pages/Products/page';
 import { SettingsPage } from './pages/Settings/page';
 import { AccessDeniedPage } from './pages/AccessDenied/page';
+import { ScanOrdersPage } from './pages/ScanOrders/page';
 import { useAuth } from './hooks/useAuth';
 
 // Auth Guard Component
@@ -49,6 +50,7 @@ function App() {
         >
           <Route path="/" element={<DashboardPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/scan" element={<ScanOrdersPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/files" element={<ImportedFilesPage />} />
           <Route path="/settings" element={<SettingsPage />} />

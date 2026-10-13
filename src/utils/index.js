@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { ORDER_STATUS } from '../constants';
+import { ORDER_STATUS } from '../constants/index.js';
 
 export const formatCurrency = (amount) => {
   if (amount == null || isNaN(amount)) return '0';
@@ -40,6 +40,22 @@ export const generateProductKey = (product) => {
   return name.trim();
 };
 
+export const getRowField = (r, ...fieldNames) => {
+  if (!r) return undefined;
+  for (const name of fieldNames) {
+    if (r[name] !== undefined && r[name] !== '') return r[name];
+  }
+  const rowKeys = Object.keys(r);
+  for (const name of fieldNames) {
+    const targetNorm = name.normalize('NFC').toLowerCase().trim();
+    const foundKey = rowKeys.find(k => k.normalize('NFC').toLowerCase().trim() === targetNorm);
+    if (foundKey && r[foundKey] !== undefined && r[foundKey] !== '') {
+      return r[foundKey];
+    }
+  }
+  return undefined;
+};
+
 export const recalculateOrder = (order, productsMap = {}) => {
   const row = order.rawData;
   if (!row) return order;
@@ -50,10 +66,11 @@ export const recalculateOrder = (order, productsMap = {}) => {
   const productsList = order.productsList || [row];
   
   const enhancedProducts = productsList.map(p => {
-    // Xử lý lỗi Unicode normalization từ file Excel của Shopee
-    const priceStr = p['Giá ưu đãi'] || p['Giá ưu đãi'] || p['Giá gốc'];
-    const price = parseNumber(priceStr);
-    const qty = parseNumber(p['Số lượng'] || 1);
+    // Tìm giá ưu đãi hoặc giá gốc (hỗ trợ cả Unicode NFD và NFC)
+    const priceVal = getRowField(p, 'Giá ưu đãi', 'Giá ưu đãi', 'Giá gốc', 'Giá gốc');
+    const price = parseNumber(priceVal);
+    const qtyVal = getRowField(p, 'Số lượng', 'Số lượng');
+    const qty = parseNumber(qtyVal || 1);
     productAmount += (price * qty);
 
     const productKey = generateProductKey(p);
@@ -68,50 +85,51 @@ export const recalculateOrder = (order, productsMap = {}) => {
     };
   });
   
-  // 2. Tổng phí vận chuyển ước tính
-  const phiVanChuyenNguoiMuaTra = parseNumber(row['Phí vận chuyển mà người mua trả']);
-  const phiVanChuyenUocTinh = parseNumber(row['Phí vận chuyển (dự kiến)']);
-  const phiVanChuyenTroGiaShopee = parseNumber(row['Phí vận chuyển tài trợ bởi Shopee (dự kiến)']);
-  const tongPhiVanChuyen = phiVanChuyenNguoiMuaTra - phiVanChuyenUocTinh + phiVanChuyenTroGiaShopee;
+  // 2. Phí vận chuyển
+  // Trong Shopee: Người bán không nhận và không trả phí ship thông thường
+  // (Phí VC do Người mua hoặc Shopee trả cho đơn vị vận chuyển).
+  // Chỉ khi đơn bị Trả hàng/hoàn tiền thì người bán mới chịu phí ship trả hàng (nếu có).
+  const phiShipTraHang = parseNumber(getRowField(row, 'Phí vận chuyển trả hàng (đơn Trả hàng/hoàn tiền)'));
+  const tongPhiVanChuyen = -phiShipTraHang;
 
-  // 3. Phụ phí
-  const phiCoDinh = parseNumber(row['Phí cố định']);
-  const phiDichVu = parseNumber(row['Phí Dịch Vụ']);
-  const phiXuLy = parseNumber(row['Phí xử lý giao dịch']);
-  const phiPiShip = phiVanChuyenNguoiMuaTra * 0.15; // Phí dịch vụ PiShip = 15% phí vận chuyển người mua trả
-  const phiShipTraHang = parseNumber(row['Phí vận chuyển trả hàng (đơn Trả hàng/hoàn tiền)']);
-  
-  const tongPhuPhi = phiCoDinh + phiDichVu + phiXuLy + phiPiShip + phiShipTraHang;
-  
-  // 4. Thuế
-  const thueGTGT = productAmount * 0.01;
-  const thueTNCN = productAmount * 0.005;
+  // 3. Phụ phí sàn (lấy đúng từ các cột trong file Excel Shopee xuất ra)
+  const phiCoDinh = parseNumber(getRowField(row, 'Phí cố định'));
+  const phiDichVu = parseNumber(getRowField(row, 'Phí Dịch Vụ', 'Phí dịch vụ'));
+  const phiXuLy = parseNumber(getRowField(row, 'Phí xử lý giao dịch'));
+  const tongPhuPhi = phiCoDinh + phiDichVu + phiXuLy + phiShipTraHang;
+
+  // 4. Thuế (1% GTGT + 0.5% TNCN tính trên Tổng tiền sản phẩm)
+  const thueGTGT = Math.round(productAmount * 0.01);
+  const thueTNCN = Math.round(productAmount * 0.005);
   const tongThue = thueGTGT + thueTNCN;
-  
-  // Doanh thu đơn hàng ước tính
-  const profit = productAmount - tongPhuPhi - tongThue + tongPhiVanChuyen - totalCogs;
-  const totalFees = tongPhuPhi + tongThue - tongPhiVanChuyen;
+
+  // Doanh thu đơn hàng ước tính (số tiền Shopee thực tế thanh toán cho người bán):
+  // = Tiền sản phẩm - Phụ phí sàn - Thuế
+  const doanhThu = productAmount - tongPhuPhi - tongThue;
+  const profit = doanhThu - totalCogs;
+  const totalFees = tongPhuPhi + tongThue;
 
   return {
     ...order,
     productAmount,
+    doanhThu,
     shopeeFee: totalFees,
     profit,
     totalCogs,
     enhancedProducts,
     feeDetails: {
-      phiVanChuyenNguoiMuaTra,
-      phiVanChuyenUocTinh,
-      phiVanChuyenTroGiaShopee,
+      phiVanChuyenNguoiMuaTra: 0,
+      phiVanChuyenUocTinh: 0,
+      phiShipTraHang,
       tongPhiVanChuyen,
       phiCoDinh,
       phiDichVu,
       phiXuLy,
-      phiPiShip,
       tongPhuPhi,
       thueGTGT,
       thueTNCN,
-      tongThue
+      tongThue,
+      doanhThu
     }
   };
 };
@@ -219,12 +237,12 @@ export const calculateDashboardMetrics = (normalizedOrders) => {
       if (order.status === ORDER_STATUS.COMPLETED) completedCount++;
       if (order.status === ORDER_STATUS.DELIVERING) {
         deliveringCount++;
-        expectedProfit += order.profit;
+        expectedProfit += (order.doanhThu != null ? order.doanhThu : order.profit);
       }
       
       totalRevenue += order.productAmount;
       totalSpent += order.shopeeFee;
-      actualProfit += order.profit;
+      actualProfit += (order.doanhThu != null ? order.doanhThu : order.profit);
     } else if (order.status === ORDER_STATUS.CANCELLED) {
       cancelledCount++;
       totalSpent += order.shopeeFee;
@@ -264,7 +282,7 @@ export const calculateChartData = (normalizedOrders) => {
       const day = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
       
       if (!dailyData[day]) dailyData[day] = { date: day, revenue: 0 };
-      dailyData[day].revenue += order.profit;
+      dailyData[day].revenue += (order.doanhThu != null ? order.doanhThu : order.profit);
     }
   });
 

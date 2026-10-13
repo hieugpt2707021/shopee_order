@@ -229,3 +229,61 @@ export const getStorageUsage = async () => {
     return 0;
   }
 };
+
+/**
+ * Lưu đợt quét đơn hàng vào cơ sở dữ liệu
+ */
+export const saveScannedBatch = async (batchInfo, orders) => {
+  try {
+    await db.transaction('rw', db.scannedBatches, db.scannedOrders, async () => {
+      await db.scannedBatches.put(batchInfo);
+      if (orders && orders.length > 0) {
+        await db.scannedOrders.bulkPut(orders);
+      }
+    });
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi lưu đợt quét:', err);
+    throw err;
+  }
+};
+
+/**
+ * Lấy danh sách các đợt quét đơn hàng
+ */
+export const getScannedBatches = async () => {
+  try {
+    return await db.scannedBatches.orderBy('createdAt').reverse().toArray();
+  } catch (err) {
+    console.error('Lỗi khi lấy danh sách đợt quét:', err);
+    return [];
+  }
+};
+
+/**
+ * Lấy các đơn hàng thuộc một đợt quét
+ */
+export const getScannedOrdersByBatch = async (batchId) => {
+  try {
+    return await db.scannedOrders.where('batchId').equals(batchId).toArray();
+  } catch (err) {
+    console.error('Lỗi khi lấy đơn hàng theo đợt:', err);
+    return [];
+  }
+};
+
+/**
+ * Xóa đợt quét
+ */
+export const deleteScannedBatch = async (batchId) => {
+  try {
+    await db.transaction('rw', db.scannedBatches, db.scannedOrders, async () => {
+      await db.scannedBatches.delete(batchId);
+      await db.scannedOrders.where('batchId').equals(batchId).delete();
+    });
+    return { success: true };
+  } catch (err) {
+    console.error('Lỗi khi xóa đợt quét:', err);
+    throw err;
+  }
+};

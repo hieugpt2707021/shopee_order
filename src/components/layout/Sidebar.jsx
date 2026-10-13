@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutGrid, FileText, Settings, Command, ShoppingBag, Moon, Sun, Database, Package } from 'lucide-react';
+import { LayoutGrid, FileText, Settings, Command, ShoppingBag, Moon, Sun, Database, Package, ScanLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getStorageUsage } from '../../utils/storage';
 
 const navigation = [
   { name: 'Tổng quan Shopee', href: '/', icon: LayoutGrid },
   { name: 'Đơn hàng', href: '/orders', icon: ShoppingBag },
+  { name: 'Quét đơn hàng', href: '/scan', icon: ScanLine, highlight: true },
   { name: 'Sản phẩm', href: '/products', icon: Package },
   { name: 'Quản lý File', href: '/files', icon: FileText },
 ];
@@ -57,7 +58,7 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-[290px] flex-shrink-0 bg-white dark:bg-[#131720] border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors duration-300">
+    <aside className="hidden md:flex w-[290px] flex-shrink-0 bg-white dark:bg-[#131720] border-r border-gray-200 dark:border-gray-800 flex-col transition-colors duration-300">
 
       {/* Header / Logo */}
       <div className="h-[73px] flex items-center gap-3 px-5 border-b border-gray-100 dark:border-gray-800">
