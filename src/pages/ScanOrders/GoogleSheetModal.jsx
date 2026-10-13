@@ -15,8 +15,10 @@ export const GoogleSheetModal = ({
   scannedOrders,
   onSuccess
 }) => {
+  const DEFAULT_WEBHOOK_URL = import.meta.env.VITE_SCAN_GOOGLE_SHEET_WEBHOOK || 'https://script.google.com/macros/s/AKfycbxDECmjyS8qsJDZy6NWoM7pi1Nl7eB3FtBDKZKEd26bF-ZznMu4Wwp0PdLbbTu8WDc6/exec';
+
   const [webhookUrl, setWebhookUrl] = useState(() => {
-    return localStorage.getItem('shopee_google_sheet_webhook') || '';
+    return localStorage.getItem('shopee_google_sheet_webhook') || DEFAULT_WEBHOOK_URL;
   });
   const [isSyncing, setIsSyncing] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);

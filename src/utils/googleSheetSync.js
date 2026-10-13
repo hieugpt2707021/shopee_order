@@ -91,11 +91,11 @@ export async function pushOrdersToGoogleSheet(orders, webhookUrl) {
     }))
   };
 
-  const response = await fetch(webhookUrl, {
+  await fetch(webhookUrl, {
     method: 'POST',
-    mode: 'no-cors', // Google Apps Script yêu cầu no-cors hoặc redirects
+    mode: 'no-cors',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'text/plain;charset=utf-8'
     },
     body: JSON.stringify(payload)
   });
