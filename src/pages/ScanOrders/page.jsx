@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Scan, Camera, Barcode, CheckCircle2, AlertTriangle, Trash2,
   FileSpreadsheet, RefreshCw, Settings2, Volume2,
-  VolumeX, Zap, ZapOff, Edit3,
-  Layers, Sparkles
+  VolumeX, Zap, ZapOff, Edit3, Eye,
+  Layers, Sparkles, ChevronRight, Check
 } from 'lucide-react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { soundEffects } from '../../utils/sound.js';
@@ -17,9 +17,41 @@ import { formatCurrency } from '../../utils/index.js';
 import { saveScannedBatch, getScannedBatches, deleteScannedBatch } from '../../utils/storage.js';
 import { OrderEditModal } from './OrderEditModal.jsx';
 import { ScannerSettingsModal } from './ScannerSettingsModal.jsx';
+import { ScannedOrdersListModal } from './ScannedOrdersListModal.jsx';
+
+/**
+ * Hàm kiểm tra trùng lặp đơn hàng:
+ * Trùng Mã vận đơn (trackingCode) HOẶC trùng Mã đơn hàng (orderCode) HOẶC trùng Mã quét (rawCode)
+ * Đều sẽ bị BỎ QUA NGAY LẬP TỨC.
+ */
+const checkOrderDuplicate = (candidateTracking, candidateOrder, candidateRaw, currentList) => {
+  const norm = (val) => (val ? val.toString().trim().toUpperCase().replace(/[\s-]/g, '') : '');
+  const tC = norm(candidateTracking);
+  const oC = norm(candidateOrder);
+  const rC = norm(candidateRaw);
+
+  for (const item of currentList) {
+    const itemT = norm(item.trackingCode);
+    const itemO = norm(item.orderCode);
+
+    // 1. Kiểm tra mã vận đơn
+    if (tC && (tC === itemT || tC === itemO)) {
+      return { isDuplicate: true, matchedCode: item.trackingCode || tC, fieldName: 'Mã vận đơn' };
+    }
+    // 2. Kiểm tra mã đơn hàng
+    if (oC && (oC === itemO || oC === itemT)) {
+      return { isDuplicate: true, matchedCode: item.orderCode || oC, fieldName: 'Mã đơn hàng' };
+    }
+    // 3. Kiểm tra mã quét trực tiếp (raw code)
+    if (rC && (rC === itemT || rC === itemO)) {
+      return { isDuplicate: true, matchedCode: rC, fieldName: 'Mã quét' };
+    }
+  }
+  return { isDuplicate: false, matchedCode: '', fieldName: '' };
+};
 
 export const ScanOrdersPage = () => {
-  // Tab chế độ: 'barcode' (Camera quét mã vạch live) hoặc 'ocr' (Chụp/tải ảnh phiếu giao hàng) hoặc 'history' (Lịch sử)
+  // Tab chế độ: 'barcode' (Camera live) hoặc 'ocr' (Chụp/tải ảnh phiếu) hoặc 'history' (Lịch sử)
   const [activeTab, setActiveTab] = useState('barcode');
 
   // Danh sách đơn hàng đã quét trong phiên hiện tại
@@ -70,7 +102,8 @@ export const ScanOrdersPage = () => {
   // Modals & Thông báo
   const [editingOrder, setEditingOrder] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null); // { type: 'success' | 'warning' | 'error', text, subText }
+  const [isListModalOpen, setIsListModalOpen] = useState(false); // Modal xem danh sách đơn trên mobile
+  const [toastMessage, setToastMessage] = useState(null); // { type, text, subText }
   const [scannedBatchesList, setScannedBatchesList] = useState([]);
 
   // Refs
@@ -94,28 +127,16 @@ export const ScanOrdersPage = () => {
   }, [settings.soundEnabled]);
 
   // Tải lịch sử đợt quét khi chuyển sang tab history
+  const loadHistory = useCallback(async () => {
+    const list = await getScannedBatches();
+    setScannedBatchesList(list || []);
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'history') {
       loadHistory();
     }
-  }, [activeTab]);
-
-  const loadHistory = async () => {
-    const list = await getScannedBatches();
-    setScannedBatchesList(list || []);
-  };
-
-  // Khởi động Camera Barcode khi ở tab 'barcode'
-  useEffect(() => {
-    if (activeTab === 'barcode') {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    return () => {
-      stopCamera();
-    };
-  }, [activeTab, facingMode]);
+  }, [activeTab, loadHistory]);
 
   const showToast = (type, text, subText = '') => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -126,14 +147,13 @@ export const ScanOrdersPage = () => {
   };
 
   // Khởi động Html5Qrcode Scanner
-  const startCamera = async () => {
+  const startCamera = useCallback(async () => {
     try {
       setCameraError('');
       if (html5QrCodeRef.current) {
         await stopCamera();
       }
 
-      // Đảm bảo DOM element đã sẵn sàng
       const qrElement = document.getElementById('barcode-reader');
       if (!qrElement) return;
 
@@ -152,7 +172,7 @@ export const ScanOrdersPage = () => {
 
       const config = {
         fps: 15,
-        qrbox: { width: 280, height: 160 },
+        qrbox: { width: 260, height: 140 },
         aspectRatio: 1.33
       };
 
@@ -160,8 +180,8 @@ export const ScanOrdersPage = () => {
         { facingMode: facingMode },
         config,
         onBarcodeDetected,
-        (errorMessage) => {
-          // Bỏ qua lỗi frame không có mã vạch
+        () => {
+          // Frame không có barcode
         }
       );
 
@@ -171,20 +191,32 @@ export const ScanOrdersPage = () => {
       setCameraError('Không thể mở camera. Vui lòng cấp quyền truy cập camera cho trình duyệt.');
       setIsCameraActive(false);
     }
-  };
+  }, [facingMode]);
 
-  const stopCamera = async () => {
+  const stopCamera = useCallback(async () => {
     if (html5QrCodeRef.current && isCameraActive) {
       try {
         await html5QrCodeRef.current.stop();
         html5QrCodeRef.current.clear();
-      } catch (err) {
+      } catch {
         // ignore
       }
       html5QrCodeRef.current = null;
       setIsCameraActive(false);
     }
-  };
+  }, [isCameraActive]);
+
+  // Khởi động Camera Barcode khi ở tab 'barcode'
+  useEffect(() => {
+    if (activeTab === 'barcode') {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [activeTab, startCamera, stopCamera]);
 
   // Đổi đèn pin (Torch)
   const toggleTorch = async () => {
@@ -204,7 +236,7 @@ export const ScanOrdersPage = () => {
     const code = decodedText.trim();
     if (!code) return;
 
-    // Chặn trùng lặp liên tục trong 2 giây (tránh máy quét bíp 10 lần 1 giây)
+    // Chặn trùng lặp liên tục trong 2 giây (tránh máy quét bíp nhiều lần 1 giây)
     const now = Date.now();
     if (code === lastScannedCodeRef.current && now - lastScannedTimeRef.current < 2500) {
       return;
@@ -212,21 +244,36 @@ export const ScanOrdersPage = () => {
     lastScannedCodeRef.current = code;
     lastScannedTimeRef.current = now;
 
-    // Kiểm tra xem mã đã có trong danh sách phiên quét chưa
-    const isDuplicate = scannedOrders.some(
-      o => (o.trackingCode && o.trackingCode.toUpperCase() === code.toUpperCase()) ||
-           (o.orderCode && o.orderCode.toUpperCase() === code.toUpperCase())
-    );
-
-    if (isDuplicate && settings.preventDuplicates) {
+    // 1. Kiểm tra trùng lặp ngay với mã quét
+    const dupCheckInitial = checkOrderDuplicate('', '', code, scannedOrders);
+    if (dupCheckInitial.isDuplicate) {
       soundEffects.playDuplicateBeep();
       if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
-      showToast('warning', 'Đơn hàng đã được quét!', `Mã: ${code} đã có trong danh sách.`);
-      return;
+      showToast(
+        'warning',
+        '⚠️ Bỏ qua đơn trùng lặp!',
+        `${dupCheckInitial.fieldName} [${dupCheckInitial.matchedCode}] đã có trong danh sách.`
+      );
+      return; // BỎ QUA NGAY LẬP TỨC
     }
 
-    // Tra cứu đơn hàng trong cơ sở dữ liệu IndexedDB nếu có
+    // 2. Tra cứu đơn hàng trong cơ sở dữ liệu IndexedDB nếu có
     const dbMatch = await lookupInDatabase(code);
+
+    // 3. Kiểm tra trùng lặp lại với kết quả DB (cả trackingCode và orderCode)
+    if (dbMatch) {
+      const dupCheckDb = checkOrderDuplicate(dbMatch.trackingCode, dbMatch.orderCode, code, scannedOrders);
+      if (dupCheckDb.isDuplicate) {
+        soundEffects.playDuplicateBeep();
+        if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
+        showToast(
+          'warning',
+          '⚠️ Bỏ qua đơn trùng lặp!',
+          `${dupCheckDb.fieldName} [${dupCheckDb.matchedCode}] đã có trong danh sách.`
+        );
+        return; // BỎ QUA NGAY LẬP TỨC
+      }
+    }
 
     let newOrder;
     if (dbMatch) {
@@ -235,7 +282,11 @@ export const ScanOrdersPage = () => {
         scannedAt: new Date().toLocaleString('vi-VN'),
         ...dbMatch
       };
-      showToast('success', `Đã quét: ${dbMatch.trackingCode || code}`, `${dbMatch.productName || 'Đơn hàng'} - ${formatCurrency(dbMatch.codAmount)} đ`);
+      showToast(
+        'success',
+        `✅ Đã quét: ${dbMatch.trackingCode || code}`,
+        `${dbMatch.productName || 'Đơn hàng'} - ${formatCurrency(dbMatch.codAmount)} đ`
+      );
     } else {
       // Đơn mới chưa có trong DB Shopee
       newOrder = {
@@ -253,7 +304,7 @@ export const ScanOrdersPage = () => {
         recipient: '',
         recipientAddress: ''
       };
-      showToast('success', `Đã quét mã: ${code}`, 'Chưa có trong dữ liệu, đã ghi nhận mã vận đơn.');
+      showToast('success', `✅ Đã quét mã: ${code}`, 'Chưa có trong dữ liệu, đã ghi nhận mã vận đơn.');
     }
 
     soundEffects.playSuccessBeep();
@@ -299,21 +350,25 @@ export const ScanOrdersPage = () => {
           return;
         }
 
-        // Kiểm tra xem đã quét chưa
-        const checkCode = parsedResult.trackingCode || parsedResult.orderCode;
-        if (checkCode) {
-          const isDuplicate = scannedOrders.some(
-            o => (o.trackingCode && o.trackingCode.toUpperCase() === checkCode.toUpperCase()) ||
-                 (o.orderCode && o.orderCode.toUpperCase() === checkCode.toUpperCase())
-          );
+        // KIỂM TRA TRÙNG LẶP TOÀN DIỆN CHO OCR:
+        // Trùng mã vận đơn HOẶC trùng mã đơn hàng là BỎ QUA NGAY!
+        const dupCheckOcr = checkOrderDuplicate(
+          parsedResult.trackingCode,
+          parsedResult.orderCode,
+          '',
+          scannedOrders
+        );
 
-          if (isDuplicate && settings.preventDuplicates) {
-            soundEffects.playDuplicateBeep();
-            if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
-            showToast('warning', 'Đơn hàng đã được quét!', `Mã: ${checkCode} đã có trong danh sách.`);
-            setIsOcrProcessing(false);
-            return;
-          }
+        if (dupCheckOcr.isDuplicate) {
+          soundEffects.playDuplicateBeep();
+          if (settings.vibrateEnabled) soundEffects.vibrateDuplicate();
+          showToast(
+            'warning',
+            '⚠️ Bỏ qua đơn trùng lặp!',
+            `${dupCheckOcr.fieldName} [${dupCheckOcr.matchedCode}] đã có trong danh sách.`
+          );
+          setIsOcrProcessing(false);
+          return; // BỎ QUA NGAY LẬP TỨC
         }
 
         const newOrder = {
@@ -432,15 +487,15 @@ export const ScanOrdersPage = () => {
   // Tính tổng
   const totalOrdersCount = scannedOrders.length;
   const totalCodAmount = scannedOrders.reduce((sum, o) => sum + (o.codAmount || 0), 0);
-  const totalQuantity = scannedOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);
+  const latestOrder = scannedOrders[0]; // Đơn vừa được quét gần nhất
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#f4f5f7] dark:bg-[#0e121a] text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
       {/* Toast Notification Banner (Nổi bật trên cùng màn hình điện thoại) */}
       {toastMessage && (
-        <div className="fixed top-3 left-4 right-4 z-50 flex justify-center pointer-events-none">
+        <div className="fixed top-2.5 left-3 right-3 z-50 flex justify-center pointer-events-none">
           <div
-            className={`max-w-md w-full p-3.5 rounded-xl shadow-2xl border backdrop-blur-md flex items-start gap-3 pointer-events-auto transform transition-all duration-300 animate-slide-down ${
+            className={`max-w-md w-full p-3 rounded-xl shadow-2xl border backdrop-blur-md flex items-start gap-2.5 pointer-events-auto transform transition-all duration-300 animate-slide-down ${
               toastMessage.type === 'success'
                 ? 'bg-emerald-600/95 text-white border-emerald-400 shadow-emerald-500/20'
                 : toastMessage.type === 'warning'
@@ -454,9 +509,9 @@ export const ScanOrdersPage = () => {
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm leading-snug">{toastMessage.text}</p>
+              <p className="font-bold text-xs sm:text-sm leading-snug">{toastMessage.text}</p>
               {toastMessage.subText && (
-                <p className="text-xs opacity-90 mt-0.5 truncate">{toastMessage.subText}</p>
+                <p className="text-[11px] opacity-90 mt-0.5 truncate">{toastMessage.subText}</p>
               )}
             </div>
           </div>
@@ -464,35 +519,35 @@ export const ScanOrdersPage = () => {
       )}
 
       {/* Header Bar */}
-      <div className="shrink-0 bg-white dark:bg-[#131720] border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-            <Scan size={18} />
+      <div className="shrink-0 bg-white dark:bg-[#131720] border-b border-gray-200 dark:border-gray-800 px-3.5 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
+            <Scan size={16} />
           </div>
           <div>
-            <h1 className="font-bold text-base leading-tight text-gray-900 dark:text-white flex items-center gap-1.5">
+            <h1 className="font-bold text-sm leading-tight text-gray-900 dark:text-white flex items-center gap-1.5">
               Quét đơn hàng
-              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded">
+              <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.5 rounded">
                 MOBILE
               </span>
             </h1>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
               Nhận diện phiếu, mã vận đơn & xuất Excel
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => soundEffects.setMuted(!settings.soundEnabled)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             title={settings.soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
           >
             {settings.soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
             title="Cài đặt quét"
           >
             <Settings2 size={16} />
@@ -500,106 +555,103 @@ export const ScanOrdersPage = () => {
         </div>
       </div>
 
-      {/* Tabs Switcher (Optimized for thumb tapping on mobile) */}
-      <div className="shrink-0 bg-white dark:bg-[#131720] px-4 py-2 border-b border-gray-100 dark:border-gray-800/80">
-        <div className="grid grid-cols-3 gap-1.5 p-1 bg-gray-100 dark:bg-[#1c2230] rounded-xl text-xs font-semibold">
+      {/* Tabs Switcher */}
+      <div className="shrink-0 bg-white dark:bg-[#131720] px-3.5 py-1.5 border-b border-gray-100 dark:border-gray-800/80">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-gray-100 dark:bg-[#1c2230] rounded-xl text-xs font-semibold">
           <button
             onClick={() => setActiveTab('barcode')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
               activeTab === 'barcode'
                 ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
-            <Barcode size={14} /> Quét Barcode
+            <Barcode size={13} /> Quét Barcode
           </button>
 
           <button
             onClick={() => setActiveTab('ocr')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
               activeTab === 'ocr'
                 ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
-            <Camera size={14} /> Chụp Phiếu (OCR)
+            <Camera size={13} /> Chụp Phiếu
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`py-1.5 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer ${
               activeTab === 'history'
                 ? 'bg-white dark:bg-[#283042] text-indigo-600 dark:text-indigo-300 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
-            <Layers size={14} /> Lịch sử ({scannedBatchesList.length})
+            <Layers size={13} /> Lịch sử ({scannedBatchesList.length})
           </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-        {/* Left Column: Camera / Scan Viewport */}
+        {/* Left Column: Camera / Scan Viewport + Mobile Interactive Area */}
         {activeTab !== 'history' && (
           <div className="w-full md:w-[460px] lg:w-[500px] shrink-0 flex flex-col bg-black relative border-r border-gray-200 dark:border-gray-800">
             {activeTab === 'barcode' ? (
               /* LIVE BARCODE / QR SCANNER VIEWPORT */
-              <div className="relative flex-1 flex flex-col justify-center items-center overflow-hidden min-h-[280px]">
+              <div className="relative h-[220px] md:flex-1 md:min-h-[300px] flex flex-col justify-center items-center overflow-hidden bg-black shrink-0">
                 {/* HTML5 QR Code Mount Target */}
                 <div id="barcode-reader" className="w-full h-full object-cover"></div>
 
                 {/* Laser scan animation overlay */}
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                  <div className="relative w-[280px] h-[160px] rounded-xl border-2 border-indigo-400/80 shadow-[0_0_20px_rgba(99,102,241,0.25)] flex items-center justify-center">
+                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3">
+                  <div className="relative w-[260px] h-[135px] rounded-xl border-2 border-indigo-400/80 shadow-[0_0_15px_rgba(99,102,241,0.25)] flex items-center justify-center">
                     {/* Corner Reticles */}
-                    <div className="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-emerald-400"></div>
-                    <div className="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-emerald-400"></div>
-                    <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-emerald-400"></div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-emerald-400"></div>
+                    <div className="absolute -top-1 -left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-emerald-400"></div>
+                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-emerald-400"></div>
+                    <div className="absolute -bottom-1 -left-1 w-3.5 h-3.5 border-b-2 border-l-2 border-emerald-400"></div>
+                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 border-b-2 border-r-2 border-emerald-400"></div>
 
                     {/* Animated Laser Line */}
                     <div className="w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_8px_#34d399] animate-pulse"></div>
 
-                    <span className="absolute -bottom-6 text-[11px] font-medium text-white/80 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                    <span className="absolute -bottom-5 text-[10px] font-medium text-white/90 bg-black/60 px-2 py-0.5 rounded-full backdrop-blur-sm">
                       Đưa mã vạch vào khung ngắm
                     </span>
                   </div>
                 </div>
 
                 {/* Camera Controls Overlay */}
-                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-auto">
+                <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between pointer-events-auto">
                   <button
                     onClick={toggleTorch}
-                    className={`p-2.5 rounded-full backdrop-blur-md transition-colors text-white ${
+                    className={`p-2 rounded-full backdrop-blur-md transition-colors text-white ${
                       torchOn ? 'bg-amber-500 text-white' : 'bg-black/60 hover:bg-black/80'
                     }`}
                     title="Bật đèn Flash"
                   >
-                    {torchOn ? <Zap size={18} /> : <ZapOff size={18} />}
+                    {torchOn ? <Zap size={16} /> : <ZapOff size={16} />}
                   </button>
 
                   <button
                     onClick={() => {
                       setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
                     }}
-                    className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors"
+                    className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors"
                     title="Đổi camera trước/sau"
                   >
-                    <RefreshCw size={18} />
+                    <RefreshCw size={16} />
                   </button>
                 </div>
 
                 {cameraError && (
-                  <div className="absolute inset-0 bg-gray-950/90 flex flex-col items-center justify-center p-6 text-center z-20">
-                    <AlertTriangle size={36} className="text-amber-500 mb-2" />
-                    <p className="text-sm font-semibold text-white mb-1">{cameraError}</p>
-                    <p className="text-xs text-gray-400 mb-4 max-w-xs">
-                      Hãy cấp quyền Camera cho trình duyệt hoặc thử dùng chế độ "Chụp Phiếu (OCR)".
-                    </p>
+                  <div className="absolute inset-0 bg-gray-950/95 flex flex-col items-center justify-center p-4 text-center z-20">
+                    <AlertTriangle size={30} className="text-amber-500 mb-1.5" />
+                    <p className="text-xs font-semibold text-white mb-1">{cameraError}</p>
                     <button
                       onClick={startCamera}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold"
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold"
                     >
                       Thử lại Camera
                     </button>
@@ -608,7 +660,7 @@ export const ScanOrdersPage = () => {
               </div>
             ) : (
               /* SMART OCR / SNAPSHOT VIEWPORT */
-              <div className="flex-1 flex flex-col justify-center items-center p-6 text-center bg-gradient-to-b from-gray-900 to-black text-white relative min-h-[280px]">
+              <div className="h-[220px] md:flex-1 md:min-h-[300px] flex flex-col justify-center items-center p-4 text-center bg-gradient-to-b from-gray-900 to-black text-white relative shrink-0">
                 <input
                   type="file"
                   accept="image/*"
@@ -619,35 +671,35 @@ export const ScanOrdersPage = () => {
                 />
 
                 {isOcrProcessing ? (
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <div className="text-sm font-bold text-white">{ocrStatusText}</div>
-                    <div className="text-xs text-gray-400">Hệ thống đang trích xuất toàn bộ trường dữ liệu...</div>
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="text-xs font-bold text-white">{ocrStatusText}</div>
+                    <div className="text-[10px] text-gray-400">Đang bóc tách đầy đủ các trường...</div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center max-w-sm space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-xl">
-                      <Camera size={32} />
+                  <div className="flex flex-col items-center max-w-xs space-y-2.5">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-md">
+                      <Camera size={24} />
                     </div>
 
                     <div>
-                      <h3 className="font-bold text-base text-white">Chụp hoặc Tải ảnh phiếu đơn</h3>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Tự động nhận diện Mã vận đơn, Mã đơn, Tên SP, Phân loại, SL, Tiền thu COD, Khối lượng và Ngày đặt.
+                      <h3 className="font-bold text-sm text-white">Chụp hoặc Tải ảnh phiếu</h3>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        Tự nhận diện Mã vận đơn, Mã đơn, Tên SP, Loại, SL, COD, Khối lượng.
                       </p>
                     </div>
 
-                    <div className="flex flex-col w-full gap-2 pt-2">
+                    <div className="flex flex-col w-full gap-1.5">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+                        className="w-full py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
                       >
-                        <Camera size={18} /> Chụp ảnh phiếu ngay
+                        <Camera size={15} /> Chụp ảnh phiếu ngay
                       </button>
 
-                      <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400">
-                        <Sparkles size={12} className="text-purple-400" />
-                        Động cơ hiện tại: <span className="font-bold text-gray-200">{settings.engine === 'gemini' ? 'Google Gemini AI' : 'Tesseract OCR (Offline)'}</span>
+                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-400">
+                        <Sparkles size={11} className="text-purple-400" />
+                        <span>Động cơ: <strong className="text-gray-200">{settings.engine === 'gemini' ? 'Gemini AI' : 'Tesseract (Offline)'}</strong></span>
                       </div>
                     </div>
                   </div>
@@ -655,20 +707,90 @@ export const ScanOrdersPage = () => {
               </div>
             )}
 
-            {/* Quick Live Batch Counter Banner */}
-            <div className="p-3 bg-gray-900/90 border-t border-gray-800 text-white flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span className="font-bold">Đã quét: {totalOrdersCount} đơn</span>
+            {/* MOBILE INTERACTIVE ACTION BAR (Cực kỳ tiện dụng trên iPhone XS trở lên) */}
+            <div className="md:hidden flex flex-col bg-[#131720] border-t border-gray-800 p-2.5 space-y-2">
+              {/* Row 1: Summary Counter & Quick Buttons */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-ping"></span>
+                  <div className="text-xs truncate">
+                    <span className="font-bold text-white">{totalOrdersCount} đơn</span>
+                    <span className="mx-1 text-gray-600">•</span>
+                    <span className="font-bold text-emerald-400">{formatCurrency(totalCodAmount)} đ</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setIsListModalOpen(true)}
+                    className="px-2.5 py-1.5 bg-[#1c2230] hover:bg-[#252d3f] text-[#5865f2] dark:text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                  >
+                    <Eye size={13} />
+                    <span>Xem đơn ({totalOrdersCount})</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportExcel}
+                    disabled={totalOrdersCount === 0}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all cursor-pointer ${
+                      totalOrdersCount > 0
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95'
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Xuất Excel</span>
+                  </button>
+                </div>
               </div>
-              <div className="font-bold text-emerald-400">
-                Tổng COD: {formatCurrency(totalCodAmount)} đ
-              </div>
+
+              {/* Row 2: Recent Scanned Order Preview Card */}
+              {latestOrder ? (
+                <div
+                  onClick={() => setIsListModalOpen(true)}
+                  className="p-2.5 bg-[#1a202c] border border-emerald-500/40 rounded-xl flex items-center justify-between gap-2.5 cursor-pointer hover:border-emerald-400 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <Check size={14} />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-xs text-indigo-400">
+                          {latestOrder.trackingCode || latestOrder.orderCode}
+                        </span>
+                        {latestOrder.carrier && (
+                          <span className="text-[9px] bg-gray-800 text-gray-300 px-1 py-0.5 rounded">
+                            {latestOrder.carrier}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-300 line-clamp-1 leading-tight mt-0.5">
+                        {latestOrder.productName}
+                      </p>
+                      <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                        <span className="font-bold text-emerald-400">{formatCurrency(latestOrder.codAmount)} đ</span>
+                        <span>SL: {latestOrder.quantity}</span>
+                        {latestOrder.weight && <span>KL: {latestOrder.weight}</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-0.5 text-gray-400 text-[10px] shrink-0 font-medium">
+                    <span>Xem tất cả</span>
+                    <ChevronRight size={14} />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 bg-[#161b24] border border-dashed border-gray-800 rounded-xl text-center text-[11px] text-gray-400">
+                  Lia camera vào mã vạch hoặc chụp phiếu để bắt đầu quét hàng loạt.
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Right Column: Scanned Queue List / History */}
+        {/* Right Column: Scanned Queue List / History (Hiện đầy đủ trên Desktop) */}
         <div className="flex-1 flex flex-col min-h-0 bg-[#fbfbfa] dark:bg-[#131720]">
           {activeTab === 'history' ? (
             /* LỊCH SỬ CÁC ĐỢT QUÉT */
@@ -680,7 +802,7 @@ export const ScanOrdersPage = () => {
                 </div>
                 <button
                   onClick={loadHistory}
-                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-medium rounded-lg text-gray-700 dark:text-gray-300 flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-medium rounded-lg text-gray-700 dark:text-gray-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw size={12} /> Làm mới
                 </button>
@@ -719,7 +841,7 @@ export const ScanOrdersPage = () => {
                               showToast('success', 'Đã xóa đợt quét');
                             }
                           }}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                           title="Xóa đợt"
                         >
                           <Trash2 size={16} />
@@ -731,8 +853,8 @@ export const ScanOrdersPage = () => {
               )}
             </div>
           ) : (
-            /* DANH SÁCH ĐƠN HÀNG TRONG ĐỢT HIỆN TẠI */
-            <div className="flex-1 flex flex-col min-h-0">
+            /* DANH SÁCH ĐƠN HÀNG TRÊN DESKTOP */
+            <div className="hidden md:flex flex-1 flex-col min-h-0">
               {/* Batch Action Bar */}
               <div className="p-3 md:px-6 bg-white dark:bg-[#151a24] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -840,7 +962,7 @@ export const ScanOrdersPage = () => {
                 )}
               </div>
 
-              {/* STICKY BOTTOM CONFIRM & EXPORT BAR */}
+              {/* STICKY BOTTOM CONFIRM & EXPORT BAR TRÊN DESKTOP */}
               <div className="p-3 md:p-4 bg-white dark:bg-[#151a24] border-t border-gray-200 dark:border-gray-800 shrink-0 flex items-center gap-3 shadow-lg">
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
@@ -868,6 +990,20 @@ export const ScanOrdersPage = () => {
           )}
         </div>
       </div>
+
+      {/* Scanned Orders List Bottom Sheet / Modal (Dành riêng cho Mobile & Tablet) */}
+      <ScannedOrdersListModal
+        isOpen={isListModalOpen}
+        onClose={() => setIsListModalOpen(false)}
+        scannedOrders={scannedOrders}
+        onEditOrder={(order) => {
+          setIsListModalOpen(false);
+          setEditingOrder(order);
+        }}
+        onDeleteOrder={handleDeleteOrder}
+        onClearAll={handleClearAll}
+        onExportExcel={handleExportExcel}
+      />
 
       {/* Edit Order Modal */}
       <OrderEditModal

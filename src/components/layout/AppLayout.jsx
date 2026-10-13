@@ -51,14 +51,17 @@ export const AppLayout = () => {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#fbfbfa] dark:bg-[#131720]">
         
         {/* Page Content with Route Transition */}
-        <div className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar pb-16 md:pb-0">
+        <div className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
           <div className="flex-1 flex flex-col min-h-0">
             <Outlet />
           </div>
         </div>
 
         {/* Mobile Bottom Navigation Bar (md:hidden) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#131720] border-t border-gray-200 dark:border-gray-800 z-40 flex items-center justify-around px-2 shadow-lg backdrop-blur-md">
+        <nav 
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          className="md:hidden fixed bottom-0 left-0 right-0 min-h-16 bg-white dark:bg-[#131720] border-t border-gray-200 dark:border-gray-800 z-40 flex items-center justify-around px-2 shadow-lg backdrop-blur-md"
+        >
           <Link
             to="/"
             className={`flex flex-col items-center justify-center w-14 py-1 transition-colors ${
