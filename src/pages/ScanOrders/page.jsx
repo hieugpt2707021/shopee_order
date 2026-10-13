@@ -725,17 +725,12 @@ export const ScanOrdersPage = () => {
           <div className="w-10 h-10 rounded bg-indigo-50/80 dark:bg-indigo-500/10 flex items-center justify-center text-[#5865f2] border border-indigo-100/50 dark:border-indigo-500/20 shrink-0">
             <Scan size={20} strokeWidth={2.5} />
           </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h1 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-white leading-tight tracking-tight">
-                Quét đơn hàng
-              </h1>
-              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-500/20 text-[#5865f2] dark:text-indigo-300 font-bold px-1.5 py-0.5 rounded border border-indigo-200/50 dark:border-indigo-500/30">
-                BARCODE / OCR
-              </span>
-            </div>
-            <p className="text-[11px] md:text-[12px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
-              Nhận diện mã vận đơn, phiếu giao hàng & đồng bộ Google Sheets
+          <div className="flex flex-col min-w-0">
+            <h1 className="text-[17px] md:text-[18px] font-bold text-[#111827] dark:text-white leading-tight tracking-tight">
+              Quét đơn hàng
+            </h1>
+            <p className="text-[11px] md:text-[12px] font-medium text-gray-500 dark:text-gray-400 mt-0.5 truncate whitespace-nowrap">
+              Quét mã & đồng bộ Google Sheets
             </p>
           </div>
         </div>
