@@ -57,108 +57,105 @@ export const AppLayout = () => {
           </div>
         </div>
 
-        {/* Floating Liquid Glass Mobile Bottom Navigation Bar (md:hidden) */}
+        {/* Full-width Liquid Glass Mobile Bottom Navigation Bar (md:hidden) */}
         <div 
-          className="md:hidden fixed inset-x-4 max-w-sm mx-auto z-40 pointer-events-none"
-          style={{ bottom: 'calc(0.85rem + env(safe-area-inset-bottom, 0px))' }}
+          className="md:hidden fixed bottom-0 inset-x-0 w-full z-40 pointer-events-none"
         >
-          <nav className="pointer-events-auto w-full h-[58px] rounded-full bg-white/75 dark:bg-[#161b26]/75 backdrop-blur-3xl backdrop-saturate-150 shadow-[0_20px_50px_rgba(0,0,0,0.1),0_4px_16px_rgba(0,0,0,0.04)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.65)] flex items-center justify-around px-3">
+          <nav 
+            className="pointer-events-auto w-full rounded-t-3xl bg-white/80 dark:bg-[#161b26]/85 backdrop-blur-3xl backdrop-saturate-150 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-12px_40px_rgba(0,0,0,0.5)] border-none flex items-center justify-around px-2"
+            style={{ 
+              height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
+            }}
+          >
             {/* Tổng quan */}
             <Link
               to="/"
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
                 location.pathname === '/'
-                  ? 'text-emerald-600 dark:text-emerald-400'
+                  ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               title="Tổng quan"
             >
               <LayoutGrid size={22} className="transition-transform group-active:scale-90" />
-              {location.pathname === '/' ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1 shadow-sm shadow-emerald-500/50 animate-fade-in" />
-              ) : (
-                <span className="w-1.5 h-1.5 mt-1 opacity-0 pointer-events-none" />
+              {location.pathname === '/' && (
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
             {/* Đơn hàng */}
             <Link
               to="/orders"
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
                 location.pathname === '/orders'
-                  ? 'text-emerald-600 dark:text-emerald-400'
+                  ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               title="Đơn hàng"
             >
               <ShoppingBag size={22} className="transition-transform group-active:scale-90" />
-              {location.pathname === '/orders' ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1 shadow-sm shadow-emerald-500/50 animate-fade-in" />
-              ) : (
-                <span className="w-1.5 h-1.5 mt-1 opacity-0 pointer-events-none" />
+              {location.pathname === '/orders' && (
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
-            {/* Central Elevated QR Button with Blurred Glow Aura */}
+            {/* Central Elevated QR Button with Blurred Glow Aura (No Border) */}
             <Link
               to="/scan"
-              className="flex flex-col items-center justify-center -mt-6 flex-1 group relative z-10"
+              className="flex items-center justify-center -mt-6 flex-1 group relative z-10"
               title="Quét đơn QR"
             >
-              {/* Blurred Radial Glow Aura (matching reference image) */}
+              {/* Blurred Radial Glow Aura in system color */}
               <div 
                 className={`absolute w-16 h-16 rounded-full blur-xl pointer-events-none transition-all duration-300 -z-10 ${
                   location.pathname === '/scan'
-                    ? 'bg-emerald-500/70 dark:bg-emerald-400/75 scale-125'
-                    : 'bg-emerald-500/50 dark:bg-emerald-400/55 scale-110 group-hover:scale-125'
+                    ? 'bg-[#5865f2]/75 dark:bg-indigo-500/80 scale-125'
+                    : 'bg-[#5865f2]/50 dark:bg-indigo-500/55 scale-110 group-hover:scale-125'
                 }`}
               />
 
-              {/* Elevated QR Button Body */}
+              {/* Elevated QR Button Body - completely borderless */}
               <div
-                className={`relative w-[52px] h-[52px] rounded-full flex items-center justify-center text-white transition-all duration-300 group-active:scale-95 shadow-[0_8px_24px_rgba(16,185,129,0.45)] ${
+                className={`relative w-[52px] h-[52px] rounded-full flex items-center justify-center text-white transition-all duration-300 group-active:scale-95 shadow-[0_8px_24px_rgba(88,101,242,0.45)] ${
                   location.pathname === '/scan'
-                    ? 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 scale-105 ring-4 ring-white/95 dark:ring-[#161b26]'
-                    : 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-400 ring-4 ring-white/95 dark:ring-[#161b26] hover:scale-105'
+                    ? 'bg-gradient-to-tr from-[#5865f2] via-[#6366f1] to-[#7b85f5] scale-105'
+                    : 'bg-gradient-to-tr from-[#5865f2] to-[#7b85f5] hover:scale-105'
                 }`}
               >
-                <QrCode size={24} className={`stroke-[2.2] ${location.pathname === '/scan' ? 'animate-pulse' : ''}`} />
+                <QrCode size={25} className={`stroke-[2.2] ${location.pathname === '/scan' ? 'animate-pulse' : ''}`} />
               </div>
             </Link>
 
             {/* Sản phẩm */}
             <Link
               to="/products"
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
                 location.pathname === '/products'
-                  ? 'text-emerald-600 dark:text-emerald-400'
+                  ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               title="Sản phẩm"
             >
               <Package size={22} className="transition-transform group-active:scale-90" />
-              {location.pathname === '/products' ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1 shadow-sm shadow-emerald-500/50 animate-fade-in" />
-              ) : (
-                <span className="w-1.5 h-1.5 mt-1 opacity-0 pointer-events-none" />
+              {location.pathname === '/products' && (
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
             {/* Cài đặt */}
             <Link
               to="/settings"
-              className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
                 location.pathname === '/settings'
-                  ? 'text-emerald-600 dark:text-emerald-400'
+                  ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
               title="Cài đặt"
             >
               <Settings size={22} className="transition-transform group-active:scale-90" />
-              {location.pathname === '/settings' ? (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1 shadow-sm shadow-emerald-500/50 animate-fade-in" />
-              ) : (
-                <span className="w-1.5 h-1.5 mt-1 opacity-0 pointer-events-none" />
+              {location.pathname === '/settings' && (
+                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
           </nav>
