@@ -57,21 +57,18 @@ export const AppLayout = () => {
           </div>
         </div>
 
-        {/* Full-width Liquid Glass Mobile Bottom Navigation Bar (md:hidden) */}
+        {/* Floating Liquid Glass Mobile Bottom Navigation Bar (md:hidden) */}
         <div 
-          className="md:hidden fixed bottom-0 inset-x-0 w-full z-40 pointer-events-none"
+          className="md:hidden fixed inset-x-3.5 sm:inset-x-6 max-w-xl mx-auto z-40 pointer-events-none"
+          style={{ bottom: 'calc(0.85rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <nav 
-            className="pointer-events-auto w-full rounded-t-3xl bg-white/80 dark:bg-[#161b26]/85 backdrop-blur-3xl backdrop-saturate-150 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_-12px_40px_rgba(0,0,0,0.5)] border-none flex items-center justify-around px-2"
-            style={{ 
-              height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
-            }}
+            className="pointer-events-auto w-full h-[62px] rounded-full bg-white/80 dark:bg-[#161b26]/85 backdrop-blur-3xl backdrop-saturate-150 shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_16px_50px_rgba(0,0,0,0.6)] border-none flex items-center justify-around px-4"
           >
             {/* Tổng quan */}
             <Link
               to="/"
-              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[62px] transition-all group ${
                 location.pathname === '/'
                   ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -80,14 +77,14 @@ export const AppLayout = () => {
             >
               <LayoutGrid size={22} className="transition-transform group-active:scale-90" />
               {location.pathname === '/' && (
-                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
             {/* Đơn hàng */}
             <Link
               to="/orders"
-              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[62px] transition-all group ${
                 location.pathname === '/orders'
                   ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -96,7 +93,7 @@ export const AppLayout = () => {
             >
               <ShoppingBag size={22} className="transition-transform group-active:scale-90" />
               {location.pathname === '/orders' && (
-                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
@@ -130,7 +127,7 @@ export const AppLayout = () => {
             {/* Sản phẩm */}
             <Link
               to="/products"
-              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[62px] transition-all group ${
                 location.pathname === '/products'
                   ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -139,14 +136,14 @@ export const AppLayout = () => {
             >
               <Package size={22} className="transition-transform group-active:scale-90" />
               {location.pathname === '/products' && (
-                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
 
             {/* Cài đặt */}
             <Link
               to="/settings"
-              className={`relative flex items-center justify-center flex-1 h-[60px] transition-all group ${
+              className={`relative flex items-center justify-center flex-1 h-[62px] transition-all group ${
                 location.pathname === '/settings'
                   ? 'text-[#5865f2] dark:text-indigo-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -155,7 +152,7 @@ export const AppLayout = () => {
             >
               <Settings size={22} className="transition-transform group-active:scale-90" />
               {location.pathname === '/settings' && (
-                <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
+                <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#5865f2] dark:bg-indigo-400 shadow-sm shadow-[#5865f2]/50 animate-fade-in" />
               )}
             </Link>
           </nav>
